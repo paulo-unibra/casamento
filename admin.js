@@ -1,9 +1,8 @@
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-
-const supabase = createClient(
-  'https://jygcabtudptfhpcfoyko.supabase.co',
-  'sb_publishable_svnP0WG_s-FD5PuJb_cL5w_0r_7R6jv'
-);
+const API_BASE = 'https://jygcabtudptfhpcfoyko.supabase.co/functions/v1/app-api';
+const SESSION_KEY = 'wedding_admin_session';
+const VISITOR_STORAGE_KEY = 'wedding_visitor_id';
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 const loginPanel = document.querySelector('#login-panel');
 const dashboard = document.querySelector('#dashboard');
@@ -40,16 +39,81 @@ const verseReference = document.querySelector('#verse-reference');
 const saveSiteContentButton = document.querySelector('#save-site-content-button');
 const siteContentFeedback = document.querySelector('#site-content-feedback');
 
-let originalGiftImageUrl = null;
-let imageRemoved = false;
-let previewObjectUrl = null;
 let loadedGifts = [];
-
+let originalGiftImageValue = null;
+let originalGiftPreviewUrl = null;
+let imageRemoved = false;
+let giftPreviewObjectUrl = null;
 let siteSettings = null;
-let heroImageRemoved = false;
-let storyImageRemoved = false;
 let heroPreviewObjectUrl = null;
 let storyPreviewObjectUrl = null;
+
+function getVisitorId() {
+  let id = localStorage.getItem(VISITOR_STORAGE_KEY);
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem(VISITOR_STORAGE_KEY, id);
+  }
+  return id;
+}
+
+const visitorId = getVisitorId();
+
+function getSession() {
+  try { return JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null'); } catch { return null; }
+}
+
+function setSession(session) {
+  sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+}
+
+function clearSession() {
+  sessionStorage.removeItem(SESSION_KEY);
+}
+
+async function apiFetch(path, options = {}, requiresAuth = true) {
+  const headers = new Headers(options.headers || {});
+  headers.set('x-visitor-id', visitorId);
+  if (options.body && !headers.has('content-type')) headers.set('content-type', 'application/json');
+
+  if (requiresAuth) {
+    const session = getSession();
+    if (!session?.access_token) throw new Error('Sessão administrativa ausente.');
+    headers.set('authorization', `Bearer ${session.access_token}`);
+  }
+
+  const response = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  const payload = response.status === 204 ? null : await response.json().catch(() => null);
+
+  if (!response.ok) {
+    if (requiresAuth && response.status === 401) {
+      clearSession();
+      loginPanel.hidden = false;
+      dashboard.hidden = true;
+    }
+    throw new Error(payload?.error || 'Não foi possível concluir a operação.');
+  }
+
+  return payload;
+}
+
+function auditPageVisit() {
+  fetch(`${API_BASE}/public/visit`, {
+    method: 'POST',
+    keepalive: true,
+    headers: { 'Content-Type': 'application/json', 'x-visitor-id': visitorId },
+    body: JSON.stringify({ visitor_id: visitorId, path: `${location.pathname}${location.search}`, title: document.title }),
+  }).catch(() => {});
+}
+
+function escapeHtml(value = '') {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
 
 const money = (value) => Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const dateTime = (value) => new Date(value).toLocaleString('pt-BR');
@@ -57,35 +121,57 @@ const dateTime = (value) => new Date(value).toLocaleString('pt-BR');
 function setTab(name) {
   document.querySelectorAll('.tab').forEach((button) => button.classList.toggle('active', button.dataset.tab === name));
   document.querySelectorAll('.tab-panel').forEach((panel) => panel.classList.toggle('active', panel.id === `tab-${name}`));
+  if (name === 'audit') loadAudit().catch((error) => window.alert(error.message));
 }
 
-document.querySelectorAll('.tab').forEach((button) => {
-  button.addEventListener('click', () => setTab(button.dataset.tab));
-});
+document.querySelectorAll('.tab').forEach((button) => button.addEventListener('click', () => setTab(button.dataset.tab)));
 
 function validateImageFile(file) {
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-  if (!allowedTypes.includes(file.type)) throw new Error('Use uma imagem JPG, PNG ou WebP.');
-  if (file.size > 5 * 1024 * 1024) throw new Error('A imagem deve ter no máximo 5 MB.');
+  if (!ALLOWED_IMAGE_TYPES.has(file.type)) throw new Error('Use uma imagem JPG, PNG ou WebP.');
+  if (file.size > MAX_FILE_SIZE) throw new Error('A imagem deve ter no máximo 5 MB.');
 }
 
-function imageExtension(file) {
-  return {
-    'image/jpeg': 'jpg',
-    'image/png': 'png',
-    'image/webp': 'webp',
-  }[file.type];
+async function fileToBase64(file) {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  let binary = '';
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
 }
 
-function clearPreviewObjectUrl() {
-  if (previewObjectUrl) {
-    URL.revokeObjectURL(previewObjectUrl);
-    previewObjectUrl = null;
+async function uploadImage(file, bucket, folder) {
+  validateImageFile(file);
+  return apiFetch('/admin/upload-image', {
+    method: 'POST',
+    body: JSON.stringify({
+      bucket,
+      folder,
+      mime_type: file.type,
+      data_base64: await fileToBase64(file),
+    }),
+  });
+}
+
+async function deleteImage(value) {
+  if (!value || !String(value).includes('storage')) return;
+  try {
+    await apiFetch('/admin/delete-image', { method: 'POST', body: JSON.stringify({ value }) });
+  } catch (error) {
+    console.warn('Não foi possível remover a imagem anterior:', error.message);
+  }
+}
+
+function clearGiftPreviewObjectUrl() {
+  if (giftPreviewObjectUrl) {
+    URL.revokeObjectURL(giftPreviewObjectUrl);
+    giftPreviewObjectUrl = null;
   }
 }
 
 function showGiftImagePreview(url) {
-  clearPreviewObjectUrl();
+  clearGiftPreviewObjectUrl();
   if (!url) {
     giftImagePreview.removeAttribute('src');
     giftImagePreviewWrap.hidden = true;
@@ -96,12 +182,13 @@ function showGiftImagePreview(url) {
 }
 
 function resetGiftForm() {
-  clearPreviewObjectUrl();
+  clearGiftPreviewObjectUrl();
   giftForm.reset();
   giftId.value = '';
   giftActive.checked = true;
   giftImage.value = '';
-  originalGiftImageUrl = null;
+  originalGiftImageValue = null;
+  originalGiftPreviewUrl = null;
   imageRemoved = false;
   giftImagePreview.removeAttribute('src');
   giftImagePreviewWrap.hidden = true;
@@ -110,52 +197,13 @@ function resetGiftForm() {
   saveGiftButton.textContent = 'Salvar presente';
 }
 
-function storagePathFromPublicUrl(url, bucket) {
-  if (!url) return null;
-  const marker = `/storage/v1/object/public/${bucket}/`;
-  const index = url.indexOf(marker);
-  if (index === -1) return null;
-  return decodeURIComponent(url.slice(index + marker.length));
-}
-
-async function deleteStorageImage(url, bucket) {
-  const path = storagePathFromPublicUrl(url, bucket);
-  if (!path) return;
-  const { error } = await supabase.storage.from(bucket).remove([path]);
-  if (error) console.warn('Não foi possível remover a imagem antiga:', error.message);
-}
-
-async function uploadImage(file, bucket, folder) {
-  validateImageFile(file);
-  const path = `${folder}/${crypto.randomUUID()}.${imageExtension(file)}`;
-  const { error } = await supabase.storage.from(bucket).upload(path, file, {
-    cacheControl: '3600',
-    upsert: false,
-    contentType: file.type,
-  });
-  if (error) throw error;
-
-  const { data } = supabase.storage.from(bucket).getPublicUrl(path);
-  return { publicUrl: data.publicUrl, path };
-}
-
-async function uploadGiftImage(file) {
-  return uploadImage(file, 'wedding-gifts', 'gifts');
-}
-
 async function loadGifts() {
-  const { data, error } = await supabase
-    .from('wedding_gifts')
-    .select('*')
-    .order('created_at', { ascending: false });
-  if (error) throw error;
-
-  loadedGifts = data || [];
+  loadedGifts = await apiFetch('/admin/gifts');
   const list = document.querySelector('#gifts-list');
   list.innerHTML = loadedGifts.map((gift) => `
     <article class="admin-card">
-      ${gift.image_url ? `<img class="admin-gift-thumb" src="${gift.image_url}" alt="${gift.name}" />` : '<div class="admin-gift-thumb admin-gift-thumb-empty">Sem foto</div>'}
-      <div class="admin-card-main"><span class="badge">${gift.category || 'Sem categoria'}</span><h3>${gift.name}</h3><p>${gift.description || 'Sem descrição'}</p></div>
+      ${gift.preview_url ? `<img class="admin-gift-thumb" src="${escapeHtml(gift.preview_url)}" alt="${escapeHtml(gift.name)}" />` : '<div class="admin-gift-thumb admin-gift-thumb-empty">Sem foto</div>'}
+      <div class="admin-card-main"><span class="badge">${escapeHtml(gift.category || 'Sem categoria')}</span><h3>${escapeHtml(gift.name)}</h3><p>${escapeHtml(gift.description || 'Sem descrição')}</p></div>
       <div class="card-side"><strong>${money(gift.price)}</strong><span>${gift.is_active ? 'Visível' : 'Oculto'}</span>
         <div class="row-actions">
           <button type="button" class="secondary" data-edit-id="${gift.id}">Editar</button>
@@ -176,9 +224,10 @@ async function loadGifts() {
       giftDescription.value = gift.description || '';
       giftActive.checked = gift.is_active;
       giftImage.value = '';
-      originalGiftImageUrl = gift.image_url || null;
+      originalGiftImageValue = gift.image_url || null;
+      originalGiftPreviewUrl = gift.preview_url || null;
       imageRemoved = false;
-      showGiftImagePreview(originalGiftImageUrl);
+      showGiftImagePreview(originalGiftPreviewUrl);
       cancelEdit.hidden = false;
       giftName.focus();
     });
@@ -187,16 +236,30 @@ async function loadGifts() {
   list.querySelectorAll('[data-delete]').forEach((button) => {
     button.addEventListener('click', async () => {
       if (!window.confirm('Excluir este presente?')) return;
-      const gift = loadedGifts.find((item) => item.id === Number(button.dataset.delete));
-      const { error } = await supabase.from('wedding_gifts').delete().eq('id', Number(button.dataset.delete));
-      if (error) return window.alert(error.message);
-      if (gift?.image_url) await deleteStorageImage(gift.image_url, 'wedding-gifts');
-      await loadGifts();
+      try {
+        await apiFetch(`/admin/gifts/${Number(button.dataset.delete)}`, { method: 'DELETE' });
+        await Promise.all([loadGifts(), loadAudit()]);
+      } catch (error) {
+        window.alert(error.message);
+      }
     });
   });
 }
 
-function revokeSitePreviewObjectUrl(kind) {
+async function loadSiteContent() {
+  const data = await apiFetch('/admin/site-settings');
+  siteSettings = data;
+  heroImage.value = '';
+  storyImage.value = '';
+  storyLead.value = data.story_lead || '';
+  storyText.value = data.story_text || '';
+  verseText.value = data.verse_text || '';
+  verseReference.value = data.verse_reference || '';
+  showSitePreview('hero', data.hero_preview_url || null);
+  showSitePreview('story', data.story_preview_url || null);
+}
+
+function revokeSitePreview(kind) {
   if (kind === 'hero' && heroPreviewObjectUrl) {
     URL.revokeObjectURL(heroPreviewObjectUrl);
     heroPreviewObjectUrl = null;
@@ -207,113 +270,156 @@ function revokeSitePreviewObjectUrl(kind) {
   }
 }
 
-function showSiteImagePreview(kind, url) {
-  revokeSitePreviewObjectUrl(kind);
+function showSitePreview(kind, url) {
+  revokeSitePreview(kind);
   const preview = kind === 'hero' ? heroImagePreview : storyImagePreview;
   const wrap = kind === 'hero' ? heroImagePreviewWrap : storyImagePreviewWrap;
-
   if (!url) {
     preview.removeAttribute('src');
     wrap.hidden = true;
     return;
   }
-
   preview.src = url;
   wrap.hidden = false;
 }
 
-function previewSelectedSiteImage(kind, input, removedFlagSetter) {
-  const file = input.files?.[0];
-  if (!file) return;
-
-  try {
-    validateImageFile(file);
-  } catch (error) {
-    input.value = '';
-    window.alert(error.message);
-    return;
-  }
-
-  revokeSitePreviewObjectUrl(kind);
-  const objectUrl = URL.createObjectURL(file);
-  if (kind === 'hero') heroPreviewObjectUrl = objectUrl;
-  else storyPreviewObjectUrl = objectUrl;
-  removedFlagSetter(false);
-
-  const preview = kind === 'hero' ? heroImagePreview : storyImagePreview;
-  const wrap = kind === 'hero' ? heroImagePreviewWrap : storyImagePreviewWrap;
-  preview.src = objectUrl;
-  wrap.hidden = false;
+function setSiteFeedback(message, isError = false) {
+  siteContentFeedback.textContent = message;
+  siteContentFeedback.style.color = isError ? '#a11b36' : '#486342';
 }
 
-async function loadSiteContent() {
-  const { data, error } = await supabase
-    .from('site_settings')
-    .select('id,hero_image_url,story_image_url,story_lead,story_text,verse_text,verse_reference,updated_at')
-    .eq('id', 1)
-    .single();
-  if (error) throw error;
+async function replaceSiteImage(kind, file) {
+  validateImageFile(file);
+  const column = kind === 'hero' ? 'hero_image_url' : 'story_image_url';
+  const folder = kind === 'hero' ? 'hero' : 'story';
+  const input = kind === 'hero' ? heroImage : storyImage;
+  const preview = kind === 'hero' ? heroImagePreview : storyImagePreview;
+  const wrap = kind === 'hero' ? heroImagePreviewWrap : storyImagePreviewWrap;
+  const oldValue = siteSettings?.[column] || null;
 
-  siteSettings = data;
-  heroImage.value = '';
-  storyImage.value = '';
-  heroImageRemoved = false;
-  storyImageRemoved = false;
-  storyLead.value = data.story_lead || '';
-  storyText.value = data.story_text || '';
-  verseText.value = data.verse_text || '';
-  verseReference.value = data.verse_reference || '';
-  showSiteImagePreview('hero', data.hero_image_url);
-  showSiteImagePreview('story', data.story_image_url);
+  revokeSitePreview(kind);
+  const localUrl = URL.createObjectURL(file);
+  if (kind === 'hero') heroPreviewObjectUrl = localUrl;
+  else storyPreviewObjectUrl = localUrl;
+  preview.src = localUrl;
+  wrap.hidden = false;
+  input.disabled = true;
+  setSiteFeedback('Enviando imagem...');
+
+  let uploaded = null;
+  try {
+    uploaded = await uploadImage(file, 'site-images', folder);
+    await apiFetch('/admin/site-settings', {
+      method: 'PATCH',
+      body: JSON.stringify({ [column]: uploaded.value }),
+    });
+    if (oldValue) await deleteImage(oldValue);
+    await loadSiteContent();
+    setSiteFeedback('Imagem atualizada e registrada na auditoria.');
+    await loadAudit();
+  } catch (error) {
+    if (uploaded?.value) await deleteImage(uploaded.value);
+    showSitePreview(kind, kind === 'hero' ? siteSettings?.hero_preview_url : siteSettings?.story_preview_url);
+    setSiteFeedback(error.message || 'Não foi possível atualizar a imagem.', true);
+  } finally {
+    input.value = '';
+    input.disabled = false;
+  }
+}
+
+async function removeSiteImage(kind) {
+  const column = kind === 'hero' ? 'hero_image_url' : 'story_image_url';
+  const oldValue = siteSettings?.[column] || null;
+  setSiteFeedback('Removendo imagem...');
+  try {
+    await apiFetch('/admin/site-settings', { method: 'PATCH', body: JSON.stringify({ [column]: null }) });
+    if (oldValue) await deleteImage(oldValue);
+    await loadSiteContent();
+    setSiteFeedback('Imagem removida.');
+    await loadAudit();
+  } catch (error) {
+    setSiteFeedback(error.message || 'Não foi possível remover a imagem.', true);
+  }
 }
 
 async function loadRsvps() {
-  const { data, error } = await supabase
-    .from('wedding_rsvps')
-    .select('*')
-    .order('created_at', { ascending: false });
-  if (error) throw error;
-  document.querySelector('#rsvps-body').innerHTML = (data || []).map((row) => `
-    <tr><td>${row.guest_name}</td><td>${row.attending ? 'Confirmado' : 'Não irá'}</td><td>${row.guests_count}</td><td>${dateTime(row.created_at)}</td></tr>
+  const data = await apiFetch('/admin/rsvps');
+  document.querySelector('#rsvps-body').innerHTML = data.map((row) => `
+    <tr><td>${escapeHtml(row.guest_name)}</td><td>${row.attending ? 'Confirmado' : 'Não irá'}</td><td>${row.guests_count}</td><td>${dateTime(row.created_at)}</td></tr>
   `).join('');
 }
 
 async function loadContributions() {
-  const { data, error } = await supabase
-    .from('wedding_contributions')
-    .select('id,contributor_name,amount,status,created_at,wedding_gifts(name)')
-    .order('created_at', { ascending: false });
-  if (error) throw error;
-  document.querySelector('#contributions-body').innerHTML = (data || []).map((row) => `
-    <tr><td>${row.contributor_name}</td><td>${row.wedding_gifts?.name || '—'}</td><td>${money(row.amount)}</td><td>${row.status}</td><td>${dateTime(row.created_at)}</td></tr>
+  const data = await apiFetch('/admin/contributions');
+  document.querySelector('#contributions-body').innerHTML = data.map((row) => `
+    <tr><td>${escapeHtml(row.contributor_name)}</td><td>${escapeHtml(row.wedding_gifts?.name || '—')}</td><td>${money(row.amount)}</td><td>${escapeHtml(row.status)}</td><td>${dateTime(row.created_at)}</td></tr>
+  `).join('');
+}
+
+function eventLabel(type) {
+  return {
+    page_visit: 'Visita ao site',
+    api_request: 'API pública',
+    admin_auth: 'Login admin',
+    admin_api: 'API admin',
+    audit_view: 'Consulta de auditoria',
+    asset_request: 'Imagem / arquivo',
+    security_denied: 'Acesso negado',
+    bot_filtered: 'Bot filtrado',
+  }[type] || type;
+}
+
+function auditWho(row) {
+  if (row.actor_email) return `<strong>${escapeHtml(row.actor_email)}</strong>`;
+  if (row.visitor_id) return `Visitante <code>${escapeHtml(row.visitor_id.slice(0, 8))}</code>`;
+  return 'Anônimo';
+}
+
+function compactDetails(details) {
+  if (!details || Object.keys(details).length === 0) return '—';
+  const text = JSON.stringify(details);
+  return escapeHtml(text.length > 260 ? `${text.slice(0, 260)}…` : text);
+}
+
+async function loadAudit() {
+  const data = await apiFetch('/admin/audit?limit=200');
+  document.querySelector('#audit-summary').textContent = `${data.length} registros mais recentes. Cada consulta desta tela também é auditada.`;
+  document.querySelector('#audit-body').innerHTML = data.map((row) => `
+    <tr>
+      <td>${dateTime(row.created_at)}</td>
+      <td><strong>${escapeHtml(eventLabel(row.event_type))}</strong></td>
+      <td><code>${escapeHtml(row.method)}</code><br><span>${escapeHtml(row.route)}</span></td>
+      <td>${auditWho(row)}${row.ip_hash ? `<br><small>IP# ${escapeHtml(row.ip_hash.slice(0, 12))}</small>` : ''}</td>
+      <td>${row.status_code ?? '—'}</td>
+      <td><small>${compactDetails(row.details)}</small></td>
+    </tr>
   `).join('');
 }
 
 async function loadDashboard() {
-  await Promise.all([loadGifts(), loadSiteContent(), loadRsvps(), loadContributions()]);
+  await Promise.all([loadGifts(), loadSiteContent(), loadRsvps(), loadContributions(), loadAudit()]);
 }
 
 async function ensureAdminSession() {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
+  const session = getSession();
+  if (!session?.access_token) {
     loginPanel.hidden = false;
     dashboard.hidden = true;
     return;
   }
 
-  const { error } = await supabase.from('wedding_rsvps').select('id').limit(1);
-  if (error) {
-    await supabase.auth.signOut();
-    loginFeedback.textContent = 'Esta conta não possui acesso administrativo.';
+  try {
+    const data = await apiFetch('/admin/me');
+    adminUser.textContent = data.user?.email || session.user?.email || '';
+    loginPanel.hidden = true;
+    dashboard.hidden = false;
+    await loadDashboard();
+  } catch (error) {
+    clearSession();
+    loginFeedback.textContent = error.message || 'Sua sessão expirou. Entre novamente.';
     loginPanel.hidden = false;
     dashboard.hidden = true;
-    return;
   }
-
-  adminUser.textContent = user.email || '';
-  loginPanel.hidden = true;
-  dashboard.hidden = false;
-  await loadDashboard();
 }
 
 document.querySelector('#login-form').addEventListener('submit', async (event) => {
@@ -321,62 +427,42 @@ document.querySelector('#login-form').addEventListener('submit', async (event) =
   loginFeedback.textContent = 'Entrando...';
   const email = document.querySelector('#admin-email').value.trim();
   const password = document.querySelector('#admin-password').value;
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) {
-    loginFeedback.textContent = 'E-mail ou senha inválidos, ou conta ainda não confirmada.';
-    return;
-  }
-  loginFeedback.textContent = '';
-  await ensureAdminSession();
-});
 
-document.querySelector('#signup-button').addEventListener('click', async () => {
-  const email = document.querySelector('#admin-email').value.trim();
-  const password = document.querySelector('#admin-password').value;
-  if (!email || password.length < 8) {
-    loginFeedback.textContent = 'Informe um e-mail válido e uma senha com pelo menos 8 caracteres.';
-    return;
-  }
-
-  loginFeedback.textContent = 'Criando acesso...';
-  const { data, error } = await supabase.auth.signUp({ email, password });
-  if (error) {
-    loginFeedback.textContent = error.message;
-    return;
-  }
-
-  if (data.session) {
+  try {
+    const session = await apiFetch('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    }, false);
+    setSession(session);
+    document.querySelector('#admin-password').value = '';
     loginFeedback.textContent = '';
     await ensureAdminSession();
-  } else {
-    loginFeedback.textContent = 'Conta criada. Confira seu e-mail para confirmar o acesso e depois entre no painel.';
+  } catch (error) {
+    loginFeedback.textContent = error.message || 'Não foi possível entrar.';
   }
 });
 
-document.querySelector('#logout-button').addEventListener('click', async () => {
-  await supabase.auth.signOut();
+document.querySelector('#logout-button').addEventListener('click', () => {
+  clearSession();
   window.location.reload();
 });
 
 giftImage.addEventListener('change', () => {
   const file = giftImage.files?.[0];
   if (!file) {
-    showGiftImagePreview(imageRemoved ? null : originalGiftImageUrl);
+    showGiftImagePreview(imageRemoved ? null : originalGiftPreviewUrl);
     return;
   }
-
   try {
     validateImageFile(file);
   } catch (error) {
     giftImage.value = '';
     window.alert(error.message);
-    showGiftImagePreview(imageRemoved ? null : originalGiftImageUrl);
     return;
   }
-
-  clearPreviewObjectUrl();
-  previewObjectUrl = URL.createObjectURL(file);
-  giftImagePreview.src = previewObjectUrl;
+  clearGiftPreviewObjectUrl();
+  giftPreviewObjectUrl = URL.createObjectURL(file);
+  giftImagePreview.src = giftPreviewObjectUrl;
   giftImagePreviewWrap.hidden = false;
   imageRemoved = false;
 });
@@ -391,38 +477,31 @@ giftForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   saveGiftButton.disabled = true;
   saveGiftButton.textContent = giftImage.files?.[0] ? 'Enviando foto...' : 'Salvando...';
-
   const selectedFile = giftImage.files?.[0] || null;
   let uploaded = null;
 
   try {
-    if (selectedFile) uploaded = await uploadGiftImage(selectedFile);
-
+    if (selectedFile) uploaded = await uploadImage(selectedFile, 'wedding-gifts', 'gifts');
     const payload = {
       name: giftName.value.trim(),
       price: Number(giftPrice.value),
       category: giftCategory.value.trim() || null,
       description: giftDescription.value.trim() || null,
-      image_url: uploaded?.publicUrl || (imageRemoved ? null : originalGiftImageUrl),
+      image_url: uploaded?.value || (imageRemoved ? null : originalGiftImageValue),
       is_active: giftActive.checked,
-      updated_at: new Date().toISOString(),
     };
 
-    const query = giftId.value
-      ? supabase.from('wedding_gifts').update(payload).eq('id', Number(giftId.value))
-      : supabase.from('wedding_gifts').insert(payload);
-
-    const { error } = await query;
-    if (error) throw error;
-
-    if (originalGiftImageUrl && (imageRemoved || uploaded)) {
-      await deleteStorageImage(originalGiftImageUrl, 'wedding-gifts');
+    if (giftId.value) {
+      await apiFetch(`/admin/gifts/${Number(giftId.value)}`, { method: 'PATCH', body: JSON.stringify(payload) });
+    } else {
+      await apiFetch('/admin/gifts', { method: 'POST', body: JSON.stringify(payload) });
     }
 
+    if (originalGiftImageValue && (imageRemoved || uploaded)) await deleteImage(originalGiftImageValue);
     resetGiftForm();
-    await loadGifts();
+    await Promise.all([loadGifts(), loadAudit()]);
   } catch (error) {
-    if (uploaded?.path) await supabase.storage.from('wedding-gifts').remove([uploaded.path]);
+    if (uploaded?.value) await deleteImage(uploaded.value);
     window.alert(error.message || 'Não foi possível salvar o presente.');
     saveGiftButton.disabled = false;
     saveGiftButton.textContent = 'Salvar presente';
@@ -432,76 +511,45 @@ giftForm.addEventListener('submit', async (event) => {
 cancelEdit.addEventListener('click', resetGiftForm);
 
 heroImage.addEventListener('change', () => {
-  previewSelectedSiteImage('hero', heroImage, (value) => { heroImageRemoved = value; });
+  const file = heroImage.files?.[0];
+  if (file) replaceSiteImage('hero', file);
 });
 
 storyImage.addEventListener('change', () => {
-  previewSelectedSiteImage('story', storyImage, (value) => { storyImageRemoved = value; });
+  const file = storyImage.files?.[0];
+  if (file) replaceSiteImage('story', file);
 });
 
-removeHeroImage.addEventListener('click', () => {
-  heroImage.value = '';
-  heroImageRemoved = true;
-  showSiteImagePreview('hero', null);
-});
-
-removeStoryImage.addEventListener('click', () => {
-  storyImage.value = '';
-  storyImageRemoved = true;
-  showSiteImagePreview('story', null);
-});
+removeHeroImage.addEventListener('click', () => removeSiteImage('hero'));
+removeStoryImage.addEventListener('click', () => removeSiteImage('story'));
 
 siteContentForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   saveSiteContentButton.disabled = true;
-  saveSiteContentButton.textContent = 'Salvando...';
-  siteContentFeedback.textContent = '';
-
-  let uploadedHero = null;
-  let uploadedStory = null;
-
+  saveSiteContentButton.textContent = 'Salvando textos...';
+  setSiteFeedback('Salvando textos...');
   try {
-    const heroFile = heroImage.files?.[0] || null;
-    const storyFile = storyImage.files?.[0] || null;
-
-    if (heroFile) uploadedHero = await uploadImage(heroFile, 'site-images', 'hero');
-    if (storyFile) uploadedStory = await uploadImage(storyFile, 'site-images', 'story');
-
-    const nextHeroUrl = uploadedHero?.publicUrl || (heroImageRemoved ? null : siteSettings?.hero_image_url || null);
-    const nextStoryUrl = uploadedStory?.publicUrl || (storyImageRemoved ? null : siteSettings?.story_image_url || null);
-
-    const { error } = await supabase
-      .from('site_settings')
-      .update({
-        hero_image_url: nextHeroUrl,
-        story_image_url: nextStoryUrl,
+    await apiFetch('/admin/site-settings', {
+      method: 'PATCH',
+      body: JSON.stringify({
         story_lead: storyLead.value.trim(),
         story_text: storyText.value.trim(),
         verse_text: verseText.value.trim(),
         verse_reference: verseReference.value.trim(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', 1);
-
-    if (error) throw error;
-
-    if (siteSettings?.hero_image_url && (heroImageRemoved || uploadedHero)) {
-      await deleteStorageImage(siteSettings.hero_image_url, 'site-images');
-    }
-    if (siteSettings?.story_image_url && (storyImageRemoved || uploadedStory)) {
-      await deleteStorageImage(siteSettings.story_image_url, 'site-images');
-    }
-
+      }),
+    });
     await loadSiteContent();
-    siteContentFeedback.textContent = 'Conteúdo atualizado. As alterações já estão disponíveis no site.';
+    setSiteFeedback('Textos atualizados com sucesso.');
+    await loadAudit();
   } catch (error) {
-    if (uploadedHero?.path) await supabase.storage.from('site-images').remove([uploadedHero.path]);
-    if (uploadedStory?.path) await supabase.storage.from('site-images').remove([uploadedStory.path]);
-    siteContentFeedback.textContent = error.message || 'Não foi possível salvar o conteúdo.';
+    setSiteFeedback(error.message || 'Não foi possível salvar os textos.', true);
   } finally {
     saveSiteContentButton.disabled = false;
-    saveSiteContentButton.textContent = 'Salvar conteúdo';
+    saveSiteContentButton.textContent = 'Salvar textos';
   }
 });
 
+document.querySelector('#refresh-audit').addEventListener('click', () => loadAudit().catch((error) => window.alert(error.message)));
+
+auditPageVisit();
 ensureAdminSession();
