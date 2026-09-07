@@ -60,8 +60,12 @@ function renderGifts() {
 
   grid.innerHTML = gifts.map((gift) => {
     const [artClass, symbol] = giftArt(gift.category || '');
+    const visual = gift.image_url
+      ? `<img src="${gift.image_url}" alt="${gift.name}" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit" />`
+      : `<span>${symbol}</span>`;
+
     return `<article class="gift-card">
-      <div class="gift-art ${artClass}"><span>${symbol}</span></div>
+      <div class="gift-art ${artClass}" ${gift.image_url ? 'style="padding:0;overflow:hidden;background:#f8f3eb"' : ''}>${visual}</div>
       <div class="gift-info">
         <span>${gift.category || 'Presente'}</span>
         <h3>${gift.name}</h3>
