@@ -17,8 +17,10 @@
       <p class="muted">Acesse com a conta autorizada para gerenciar presentes, confirmações e contribuições.</p>
       <form id="login-form" class="stack">
         <label>E-mail<input id="admin-email" type="email" required autocomplete="username" /></label>
-        <label>Senha<input id="admin-password" type="password" required autocomplete="current-password" /></label>
+        <label>Senha<input id="admin-password" type="password" minlength="8" required autocomplete="current-password" /></label>
         <button type="submit">Entrar</button>
+        <button type="button" id="signup-button" class="secondary">Criar primeiro acesso</button>
+        <p class="muted small">A criação da conta não concede permissão automaticamente. O banco só libera o painel para e-mails previamente autorizados.</p>
         <p id="login-feedback" class="feedback" role="status"></p>
       </form>
     </section>
