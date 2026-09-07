@@ -96,6 +96,36 @@ async function loadGifts() {
   renderGifts();
 }
 
+async function loadSiteSettings() {
+  const { data, error } = await supabase
+    .from('site_settings')
+    .select('hero_image_url,story_image_url,story_lead,story_text,verse_text,verse_reference')
+    .eq('id', 1)
+    .single();
+
+  if (error) {
+    console.warn('Não foi possível carregar o conteúdo editável:', error.message);
+    return;
+  }
+
+  const heroPhoto = document.querySelector('#hero-photo');
+  const storyPhoto = document.querySelector('#story-photo');
+  const storyLead = document.querySelector('#story-lead');
+  const storyText = document.querySelector('#story-text');
+  const storyVerse = document.querySelector('#story-verse');
+  const storyVerseReference = document.querySelector('#story-verse-reference');
+
+  heroPhoto.style.backgroundImage = data.hero_image_url ? `url("${data.hero_image_url}")` : 'none';
+  storyPhoto.style.backgroundImage = data.story_image_url
+    ? `linear-gradient(rgba(193,59,130,.025),rgba(79,96,72,.08)), url("${data.story_image_url}")`
+    : 'none';
+
+  if (data.story_lead) storyLead.textContent = data.story_lead;
+  if (data.story_text) storyText.textContent = data.story_text;
+  if (data.verse_text) storyVerse.textContent = `“${data.verse_text}”`;
+  if (data.verse_reference) storyVerseReference.textContent = data.verse_reference;
+}
+
 async function chooseGift(giftId) {
   const gift = allGifts.find((item) => item.id === giftId);
   if (!gift) return;
@@ -149,11 +179,11 @@ async function initSupabase() {
   try {
     const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
     supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-    await loadGifts();
+    await Promise.all([loadGifts(), loadSiteSettings()]);
     document.querySelector('#rsvp-form').addEventListener('submit', submitRsvp);
   } catch (error) {
     console.error('Supabase init error:', error);
-    showToast('A conexão com a lista de presentes está temporariamente indisponível.');
+    showToast('A conexão com o site está temporariamente indisponível.');
   }
 }
 
