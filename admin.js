@@ -9,6 +9,7 @@ const loginPanel = document.querySelector('#login-panel');
 const dashboard = document.querySelector('#dashboard');
 const loginFeedback = document.querySelector('#login-feedback');
 const adminUser = document.querySelector('#admin-user');
+
 const giftForm = document.querySelector('#gift-form');
 const giftId = document.querySelector('#gift-id');
 const giftName = document.querySelector('#gift-name');
@@ -23,10 +24,32 @@ const removeGiftImage = document.querySelector('#remove-gift-image');
 const saveGiftButton = document.querySelector('#save-gift-button');
 const cancelEdit = document.querySelector('#cancel-edit');
 
+const siteContentForm = document.querySelector('#site-content-form');
+const heroImage = document.querySelector('#hero-image');
+const storyImage = document.querySelector('#story-image');
+const heroImagePreview = document.querySelector('#hero-image-preview');
+const storyImagePreview = document.querySelector('#story-image-preview');
+const heroImagePreviewWrap = document.querySelector('#hero-image-preview-wrap');
+const storyImagePreviewWrap = document.querySelector('#story-image-preview-wrap');
+const removeHeroImage = document.querySelector('#remove-hero-image');
+const removeStoryImage = document.querySelector('#remove-story-image');
+const storyLead = document.querySelector('#story-lead');
+const storyText = document.querySelector('#story-text');
+const verseText = document.querySelector('#verse-text');
+const verseReference = document.querySelector('#verse-reference');
+const saveSiteContentButton = document.querySelector('#save-site-content-button');
+const siteContentFeedback = document.querySelector('#site-content-feedback');
+
 let originalGiftImageUrl = null;
 let imageRemoved = false;
 let previewObjectUrl = null;
 let loadedGifts = [];
+
+let siteSettings = null;
+let heroImageRemoved = false;
+let storyImageRemoved = false;
+let heroPreviewObjectUrl = null;
+let storyPreviewObjectUrl = null;
 
 const money = (value) => Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const dateTime = (value) => new Date(value).toLocaleString('pt-BR');
@@ -39,6 +62,20 @@ function setTab(name) {
 document.querySelectorAll('.tab').forEach((button) => {
   button.addEventListener('click', () => setTab(button.dataset.tab));
 });
+
+function validateImageFile(file) {
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+  if (!allowedTypes.includes(file.type)) throw new Error('Use uma imagem JPG, PNG ou WebP.');
+  if (file.size > 5 * 1024 * 1024) throw new Error('A imagem deve ter no máximo 5 MB.');
+}
+
+function imageExtension(file) {
+  return {
+    'image/jpeg': 'jpg',
+    'image/png': 'png',
+    'image/webp': 'webp',
+  }[file.type];
+}
 
 function clearPreviewObjectUrl() {
   if (previewObjectUrl) {
@@ -73,41 +110,37 @@ function resetGiftForm() {
   saveGiftButton.textContent = 'Salvar presente';
 }
 
-function storagePathFromPublicUrl(url) {
+function storagePathFromPublicUrl(url, bucket) {
   if (!url) return null;
-  const marker = '/storage/v1/object/public/wedding-gifts/';
+  const marker = `/storage/v1/object/public/${bucket}/`;
   const index = url.indexOf(marker);
   if (index === -1) return null;
   return decodeURIComponent(url.slice(index + marker.length));
 }
 
-async function deleteStorageImage(url) {
-  const path = storagePathFromPublicUrl(url);
+async function deleteStorageImage(url, bucket) {
+  const path = storagePathFromPublicUrl(url, bucket);
   if (!path) return;
-  const { error } = await supabase.storage.from('wedding-gifts').remove([path]);
+  const { error } = await supabase.storage.from(bucket).remove([path]);
   if (error) console.warn('Não foi possível remover a imagem antiga:', error.message);
 }
 
-async function uploadGiftImage(file) {
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-  if (!allowedTypes.includes(file.type)) throw new Error('Use uma imagem JPG, PNG ou WebP.');
-  if (file.size > 5 * 1024 * 1024) throw new Error('A imagem deve ter no máximo 5 MB.');
-
-  const extensionByType = {
-    'image/jpeg': 'jpg',
-    'image/png': 'png',
-    'image/webp': 'webp',
-  };
-  const path = `gifts/${crypto.randomUUID()}.${extensionByType[file.type]}`;
-  const { error } = await supabase.storage.from('wedding-gifts').upload(path, file, {
+async function uploadImage(file, bucket, folder) {
+  validateImageFile(file);
+  const path = `${folder}/${crypto.randomUUID()}.${imageExtension(file)}`;
+  const { error } = await supabase.storage.from(bucket).upload(path, file, {
     cacheControl: '3600',
     upsert: false,
     contentType: file.type,
   });
   if (error) throw error;
 
-  const { data } = supabase.storage.from('wedding-gifts').getPublicUrl(path);
+  const { data } = supabase.storage.from(bucket).getPublicUrl(path);
   return { publicUrl: data.publicUrl, path };
+}
+
+async function uploadGiftImage(file) {
+  return uploadImage(file, 'wedding-gifts', 'gifts');
 }
 
 async function loadGifts() {
@@ -157,10 +190,81 @@ async function loadGifts() {
       const gift = loadedGifts.find((item) => item.id === Number(button.dataset.delete));
       const { error } = await supabase.from('wedding_gifts').delete().eq('id', Number(button.dataset.delete));
       if (error) return window.alert(error.message);
-      if (gift?.image_url) await deleteStorageImage(gift.image_url);
+      if (gift?.image_url) await deleteStorageImage(gift.image_url, 'wedding-gifts');
       await loadGifts();
     });
   });
+}
+
+function revokeSitePreviewObjectUrl(kind) {
+  if (kind === 'hero' && heroPreviewObjectUrl) {
+    URL.revokeObjectURL(heroPreviewObjectUrl);
+    heroPreviewObjectUrl = null;
+  }
+  if (kind === 'story' && storyPreviewObjectUrl) {
+    URL.revokeObjectURL(storyPreviewObjectUrl);
+    storyPreviewObjectUrl = null;
+  }
+}
+
+function showSiteImagePreview(kind, url) {
+  revokeSitePreviewObjectUrl(kind);
+  const preview = kind === 'hero' ? heroImagePreview : storyImagePreview;
+  const wrap = kind === 'hero' ? heroImagePreviewWrap : storyImagePreviewWrap;
+
+  if (!url) {
+    preview.removeAttribute('src');
+    wrap.hidden = true;
+    return;
+  }
+
+  preview.src = url;
+  wrap.hidden = false;
+}
+
+function previewSelectedSiteImage(kind, input, removedFlagSetter) {
+  const file = input.files?.[0];
+  if (!file) return;
+
+  try {
+    validateImageFile(file);
+  } catch (error) {
+    input.value = '';
+    window.alert(error.message);
+    return;
+  }
+
+  revokeSitePreviewObjectUrl(kind);
+  const objectUrl = URL.createObjectURL(file);
+  if (kind === 'hero') heroPreviewObjectUrl = objectUrl;
+  else storyPreviewObjectUrl = objectUrl;
+  removedFlagSetter(false);
+
+  const preview = kind === 'hero' ? heroImagePreview : storyImagePreview;
+  const wrap = kind === 'hero' ? heroImagePreviewWrap : storyImagePreviewWrap;
+  preview.src = objectUrl;
+  wrap.hidden = false;
+}
+
+async function loadSiteContent() {
+  const { data, error } = await supabase
+    .from('site_settings')
+    .select('id,hero_image_url,story_image_url,story_lead,story_text,verse_text,verse_reference,updated_at')
+    .eq('id', 1)
+    .single();
+  if (error) throw error;
+
+  siteSettings = data;
+  heroImage.value = '';
+  storyImage.value = '';
+  heroImageRemoved = false;
+  storyImageRemoved = false;
+  storyLead.value = data.story_lead || '';
+  storyText.value = data.story_text || '';
+  verseText.value = data.verse_text || '';
+  verseReference.value = data.verse_reference || '';
+  showSiteImagePreview('hero', data.hero_image_url);
+  showSiteImagePreview('story', data.story_image_url);
 }
 
 async function loadRsvps() {
@@ -186,7 +290,7 @@ async function loadContributions() {
 }
 
 async function loadDashboard() {
-  await Promise.all([loadGifts(), loadRsvps(), loadContributions()]);
+  await Promise.all([loadGifts(), loadSiteContent(), loadRsvps(), loadContributions()]);
 }
 
 async function ensureAdminSession() {
@@ -261,10 +365,11 @@ giftImage.addEventListener('change', () => {
     return;
   }
 
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-  if (!allowedTypes.includes(file.type) || file.size > 5 * 1024 * 1024) {
+  try {
+    validateImageFile(file);
+  } catch (error) {
     giftImage.value = '';
-    window.alert(file.size > 5 * 1024 * 1024 ? 'A imagem deve ter no máximo 5 MB.' : 'Use uma imagem JPG, PNG ou WebP.');
+    window.alert(error.message);
     showGiftImagePreview(imageRemoved ? null : originalGiftImageUrl);
     return;
   }
@@ -311,7 +416,7 @@ giftForm.addEventListener('submit', async (event) => {
     if (error) throw error;
 
     if (originalGiftImageUrl && (imageRemoved || uploaded)) {
-      await deleteStorageImage(originalGiftImageUrl);
+      await deleteStorageImage(originalGiftImageUrl, 'wedding-gifts');
     }
 
     resetGiftForm();
@@ -325,5 +430,78 @@ giftForm.addEventListener('submit', async (event) => {
 });
 
 cancelEdit.addEventListener('click', resetGiftForm);
+
+heroImage.addEventListener('change', () => {
+  previewSelectedSiteImage('hero', heroImage, (value) => { heroImageRemoved = value; });
+});
+
+storyImage.addEventListener('change', () => {
+  previewSelectedSiteImage('story', storyImage, (value) => { storyImageRemoved = value; });
+});
+
+removeHeroImage.addEventListener('click', () => {
+  heroImage.value = '';
+  heroImageRemoved = true;
+  showSiteImagePreview('hero', null);
+});
+
+removeStoryImage.addEventListener('click', () => {
+  storyImage.value = '';
+  storyImageRemoved = true;
+  showSiteImagePreview('story', null);
+});
+
+siteContentForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  saveSiteContentButton.disabled = true;
+  saveSiteContentButton.textContent = 'Salvando...';
+  siteContentFeedback.textContent = '';
+
+  let uploadedHero = null;
+  let uploadedStory = null;
+
+  try {
+    const heroFile = heroImage.files?.[0] || null;
+    const storyFile = storyImage.files?.[0] || null;
+
+    if (heroFile) uploadedHero = await uploadImage(heroFile, 'site-images', 'hero');
+    if (storyFile) uploadedStory = await uploadImage(storyFile, 'site-images', 'story');
+
+    const nextHeroUrl = uploadedHero?.publicUrl || (heroImageRemoved ? null : siteSettings?.hero_image_url || null);
+    const nextStoryUrl = uploadedStory?.publicUrl || (storyImageRemoved ? null : siteSettings?.story_image_url || null);
+
+    const { error } = await supabase
+      .from('site_settings')
+      .update({
+        hero_image_url: nextHeroUrl,
+        story_image_url: nextStoryUrl,
+        story_lead: storyLead.value.trim(),
+        story_text: storyText.value.trim(),
+        verse_text: verseText.value.trim(),
+        verse_reference: verseReference.value.trim(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', 1);
+
+    if (error) throw error;
+
+    if (siteSettings?.hero_image_url && (heroImageRemoved || uploadedHero)) {
+      await deleteStorageImage(siteSettings.hero_image_url, 'site-images');
+    }
+    if (siteSettings?.story_image_url && (storyImageRemoved || uploadedStory)) {
+      await deleteStorageImage(siteSettings.story_image_url, 'site-images');
+    }
+
+    await loadSiteContent();
+    siteContentFeedback.textContent = 'Conteúdo atualizado. As alterações já estão disponíveis no site.';
+  } catch (error) {
+    if (uploadedHero?.path) await supabase.storage.from('site-images').remove([uploadedHero.path]);
+    if (uploadedStory?.path) await supabase.storage.from('site-images').remove([uploadedStory.path]);
+    siteContentFeedback.textContent = error.message || 'Não foi possível salvar o conteúdo.';
+  } finally {
+    saveSiteContentButton.disabled = false;
+    saveSiteContentButton.textContent = 'Salvar conteúdo';
+  }
+});
 
 ensureAdminSession();
