@@ -45,8 +45,19 @@
           <label>Valor (R$)<input id="gift-price" type="number" min="0.01" step="0.01" required /></label>
           <label>Categoria<input id="gift-category" placeholder="Casa, Lua de mel..." /></label>
           <label class="wide">Descrição<textarea id="gift-description" rows="3"></textarea></label>
+
+          <label class="wide gift-image-field">
+            Foto do presente
+            <input id="gift-image" type="file" accept="image/jpeg,image/png,image/webp" />
+            <span class="field-note">JPG, PNG ou WebP · máximo 5 MB. Ao editar, deixe vazio para manter a foto atual.</span>
+          </label>
+          <div class="gift-image-preview-wrap wide" id="gift-image-preview-wrap" hidden>
+            <img id="gift-image-preview" alt="Pré-visualização da foto do presente" />
+            <button type="button" id="remove-gift-image" class="secondary">Remover foto</button>
+          </div>
+
           <label class="checkbox"><input id="gift-active" type="checkbox" checked /> Exibir no site</label>
-          <div class="form-actions wide"><button type="submit">Salvar presente</button><button type="button" id="cancel-edit" class="secondary" hidden>Cancelar edição</button></div>
+          <div class="form-actions wide"><button type="submit" id="save-gift-button">Salvar presente</button><button type="button" id="cancel-edit" class="secondary" hidden>Cancelar edição</button></div>
         </form>
         <div id="gifts-list" class="cards"></div>
       </section>
