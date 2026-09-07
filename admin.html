@@ -72,6 +72,7 @@
         </div>
 
         <form id="site-content-form" class="site-content-form">
+          <p class="muted"><strong>Fotos:</strong> ao selecionar uma nova imagem, ela é enviada e salva automaticamente.</p>
           <div class="site-media-grid">
             <section class="media-editor">
               <div>
@@ -84,7 +85,7 @@
               <label>
                 Trocar foto
                 <input id="hero-image" type="file" accept="image/jpeg,image/png,image/webp" />
-                <span class="field-note">JPG, PNG ou WebP · máximo 5 MB.</span>
+                <span class="field-note">JPG, PNG ou WebP · máximo 5 MB. O upload inicia ao selecionar.</span>
               </label>
               <button type="button" id="remove-hero-image" class="secondary">Remover foto</button>
             </section>
@@ -100,7 +101,7 @@
               <label>
                 Trocar foto
                 <input id="story-image" type="file" accept="image/jpeg,image/png,image/webp" />
-                <span class="field-note">JPG, PNG ou WebP · máximo 5 MB.</span>
+                <span class="field-note">JPG, PNG ou WebP · máximo 5 MB. O upload inicia ao selecionar.</span>
               </label>
               <button type="button" id="remove-story-image" class="secondary">Remover foto</button>
             </section>
@@ -128,7 +129,7 @@
           </div>
 
           <div class="content-save-row">
-            <button type="submit" id="save-site-content-button">Salvar conteúdo</button>
+            <button type="submit" id="save-site-content-button">Salvar textos</button>
             <p id="site-content-feedback" class="content-feedback" role="status" aria-live="polite"></p>
           </div>
         </form>
@@ -147,5 +148,6 @@
   </main>
 
   <script type="module" src="admin.js"></script>
+  <script type="module" src="admin-site-content.js"></script>
 </body>
 </html>
