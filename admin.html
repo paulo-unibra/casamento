@@ -14,13 +14,12 @@
     <section class="login-panel" id="login-panel">
       <p class="eyebrow">Paulo & Priscila</p>
       <h1>Painel administrativo</h1>
-      <p class="muted">Acesse com a conta autorizada para gerenciar presentes, conteúdo do site, confirmações e contribuições.</p>
+      <p class="muted">Acesso restrito aos administradores previamente autorizados.</p>
       <form id="login-form" class="stack">
         <label>E-mail<input id="admin-email" type="email" required autocomplete="username" /></label>
         <label>Senha<input id="admin-password" type="password" minlength="8" required autocomplete="current-password" /></label>
         <button type="submit">Entrar</button>
-        <button type="button" id="signup-button" class="secondary">Criar primeiro acesso</button>
-        <p class="muted small">A criação da conta não concede permissão automaticamente. O banco só libera o painel para e-mails previamente autorizados.</p>
+        <p class="muted small">Novas contas não podem ser criadas por esta página. O acesso é liberado somente para e-mails cadastrados como administradores.</p>
         <p id="login-feedback" class="feedback" role="status"></p>
       </form>
     </section>
@@ -36,6 +35,7 @@
         <button class="tab" data-tab="content">Conteúdo do site</button>
         <button class="tab" data-tab="rsvps">Confirmações</button>
         <button class="tab" data-tab="contributions">Contribuições</button>
+        <button class="tab" data-tab="audit">Auditoria</button>
       </nav>
 
       <section class="tab-panel active" id="tab-gifts">
@@ -75,57 +75,26 @@
           <p class="muted"><strong>Fotos:</strong> ao selecionar uma nova imagem, ela é enviada e salva automaticamente.</p>
           <div class="site-media-grid">
             <section class="media-editor">
-              <div>
-                <h3>Foto principal</h3>
-                <p class="muted">Imagem exibida no topo do site.</p>
-              </div>
-              <div class="site-image-preview-wrap" id="hero-image-preview-wrap">
-                <img id="hero-image-preview" alt="Pré-visualização da foto principal" />
-              </div>
-              <label>
-                Trocar foto
-                <input id="hero-image" type="file" accept="image/jpeg,image/png,image/webp" />
-                <span class="field-note">JPG, PNG ou WebP · máximo 5 MB. O upload inicia ao selecionar.</span>
-              </label>
+              <div><h3>Foto principal</h3><p class="muted">Imagem exibida no topo do site.</p></div>
+              <div class="site-image-preview-wrap" id="hero-image-preview-wrap"><img id="hero-image-preview" alt="Pré-visualização da foto principal" /></div>
+              <label>Trocar foto<input id="hero-image" type="file" accept="image/jpeg,image/png,image/webp" /><span class="field-note">JPG, PNG ou WebP · máximo 5 MB. O upload inicia ao selecionar.</span></label>
               <button type="button" id="remove-hero-image" class="secondary">Remover foto</button>
             </section>
 
             <section class="media-editor">
-              <div>
-                <h3>Foto de “Nossa história”</h3>
-                <p class="muted">Imagem em arco exibida ao lado do texto da história.</p>
-              </div>
-              <div class="site-image-preview-wrap" id="story-image-preview-wrap">
-                <img id="story-image-preview" alt="Pré-visualização da foto da história" />
-              </div>
-              <label>
-                Trocar foto
-                <input id="story-image" type="file" accept="image/jpeg,image/png,image/webp" />
-                <span class="field-note">JPG, PNG ou WebP · máximo 5 MB. O upload inicia ao selecionar.</span>
-              </label>
+              <div><h3>Foto de “Nossa história”</h3><p class="muted">Imagem em arco exibida ao lado do texto da história.</p></div>
+              <div class="site-image-preview-wrap" id="story-image-preview-wrap"><img id="story-image-preview" alt="Pré-visualização da foto da história" /></div>
+              <label>Trocar foto<input id="story-image" type="file" accept="image/jpeg,image/png,image/webp" /><span class="field-note">JPG, PNG ou WebP · máximo 5 MB. O upload inicia ao selecionar.</span></label>
               <button type="button" id="remove-story-image" class="secondary">Remover foto</button>
             </section>
           </div>
 
-          <label>
-            Texto de destaque da história
-            <textarea id="story-lead" rows="3" maxlength="600" required></textarea>
-          </label>
-
-          <label>
-            Texto da história
-            <textarea id="story-text" rows="5" maxlength="2000" required></textarea>
-          </label>
+          <label>Texto de destaque da história<textarea id="story-lead" rows="3" maxlength="600" required></textarea></label>
+          <label>Texto da história<textarea id="story-text" rows="5" maxlength="2000" required></textarea></label>
 
           <div class="site-text-grid">
-            <label>
-              Versículo / frase
-              <textarea id="verse-text" rows="3" maxlength="500" required></textarea>
-            </label>
-            <label>
-              Referência
-              <input id="verse-reference" maxlength="100" placeholder="Ex.: Rute 1:16" required />
-            </label>
+            <label>Versículo / frase<textarea id="verse-text" rows="3" maxlength="500" required></textarea></label>
+            <label>Referência<input id="verse-reference" maxlength="100" placeholder="Ex.: Rute 1:16" required /></label>
           </div>
 
           <div class="content-save-row">
@@ -144,10 +113,26 @@
         <div class="panel-heading"><div><h2>Contribuições</h2><p>Registros de presentes e pagamentos em teste.</p></div></div>
         <div class="table-wrap"><table><thead><tr><th>Convidado</th><th>Presente</th><th>Valor</th><th>Status</th><th>Data</th></tr></thead><tbody id="contributions-body"></tbody></table></div>
       </section>
+
+      <section class="tab-panel" id="tab-audit">
+        <div class="panel-heading">
+          <div>
+            <h2>Logs de auditoria</h2>
+            <p>Últimos acessos ao site e à API. IPs são armazenados somente em formato de hash para correlação de acessos.</p>
+          </div>
+          <button type="button" id="refresh-audit" class="secondary">Atualizar logs</button>
+        </div>
+        <p class="muted small" id="audit-summary"></p>
+        <div class="table-wrap audit-table-wrap">
+          <table>
+            <thead><tr><th>Data</th><th>Evento</th><th>Método / rota</th><th>Quem</th><th>Status</th><th>Detalhes</th></tr></thead>
+            <tbody id="audit-body"></tbody>
+          </table>
+        </div>
+      </section>
     </section>
   </main>
 
   <script type="module" src="admin.js"></script>
-  <script type="module" src="admin-site-content.js"></script>
 </body>
 </html>
