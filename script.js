@@ -3,6 +3,7 @@ const navigation = document.querySelector('.main-navigation');
 const toast = document.querySelector('.toast');
 
 const API_BASE = 'https://jygcabtudptfhpcfoyko.supabase.co/functions/v1/app-api';
+const ASAAS_PAYMENT_API = 'https://jygcabtudptfhpcfoyko.supabase.co/functions/v1/create-asaas-payment';
 const VISITOR_STORAGE_KEY = 'wedding_visitor_id';
 let allGifts = [];
 let showingAllGifts = false;
@@ -35,6 +36,23 @@ async function apiFetch(path, options = {}) {
 
   if (!response.ok) {
     throw new Error(payload?.error || 'Não foi possível concluir a operação.');
+  }
+
+  return payload;
+}
+
+async function paymentFetch(options = {}) {
+  const headers = new Headers(options.headers || {});
+  headers.set('x-visitor-id', visitorId);
+  headers.set('content-type', 'application/json');
+
+  const response = await fetch(ASAAS_PAYMENT_API, { ...options, headers });
+  const payload = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const error = new Error(payload?.error || 'Não foi possível abrir o pagamento.');
+    error.code = payload?.code;
+    throw error;
   }
 
   return payload;
@@ -85,7 +103,7 @@ function showToast(message) {
   toast.textContent = message;
   toast.classList.add('visible');
   window.clearTimeout(showToast.timeout);
-  showToast.timeout = window.setTimeout(() => toast.classList.remove('visible'), 3600);
+  showToast.timeout = window.setTimeout(() => toast.classList.remove('visible'), 4200);
 }
 
 function money(value) {
@@ -131,7 +149,7 @@ function renderGifts() {
   }).join('');
 
   grid.querySelectorAll('[data-gift-id]').forEach((button) => {
-    button.addEventListener('click', () => chooseGift(Number(button.dataset.giftId)));
+    button.addEventListener('click', () => chooseGift(Number(button.dataset.giftId), button));
   });
 
   const viewAll = document.querySelector('#view-all-gifts');
@@ -165,25 +183,37 @@ async function loadSiteSettings() {
   if (data.verse_reference) storyVerseReference.textContent = data.verse_reference;
 }
 
-async function chooseGift(giftId) {
+async function chooseGift(giftId, button) {
   const gift = allGifts.find((item) => item.id === giftId);
   if (!gift) return;
 
   const contributorName = window.prompt(`Quem está presenteando “${gift.name}”?\nDigite seu nome completo:`);
   if (!contributorName?.trim()) return;
 
+  const originalText = button.textContent;
+  button.disabled = true;
+  button.textContent = 'Abrindo pagamento...';
+
   try {
-    await apiFetch('/public/contribution-test', {
+    const result = await paymentFetch({
       method: 'POST',
       body: JSON.stringify({
         gift_id: gift.id,
         contributor_name: contributorName.trim(),
       }),
     });
-    showToast('Presente registrado em modo de teste. Nenhum pagamento foi cobrado.');
+
+    if (!result?.checkout_url) throw new Error('O pagamento foi criado sem uma URL de checkout.');
+    window.location.assign(result.checkout_url);
   } catch (error) {
     console.error(error);
-    showToast(error.message || 'Não foi possível registrar o presente agora.');
+    if (error.code === 'ASAAS_NOT_CONFIGURED') {
+      showToast('Os pagamentos estão sendo ativados. Tente novamente após a configuração do Asaas.');
+    } else {
+      showToast(error.message || 'Não foi possível abrir o pagamento agora.');
+    }
+    button.disabled = false;
+    button.textContent = originalText;
   }
 }
 
@@ -215,11 +245,23 @@ async function submitRsvp(event) {
   }
 }
 
+function showPaymentReturnMessage() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('pagamento') !== 'concluido') return;
+
+  showToast('Pagamento enviado. A confirmação será atualizada automaticamente pelo Asaas.');
+  params.delete('pagamento');
+  const query = params.toString();
+  const nextUrl = `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`;
+  window.history.replaceState({}, '', nextUrl);
+}
+
 async function init() {
   auditPageVisit();
   try {
     await Promise.all([loadGifts(), loadSiteSettings()]);
     document.querySelector('#rsvp-form').addEventListener('submit', submitRsvp);
+    showPaymentReturnMessage();
   } catch (error) {
     console.error('API init error:', error);
     showToast('A conexão com o site está temporariamente indisponível.');
