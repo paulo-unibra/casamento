@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — Paulo & Priscila</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Italiana&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body>
+  <main class="admin-shell">
+    <section class="login-panel" id="login-panel">
+      <p class="eyebrow">Paulo & Priscila</p>
+      <h1>Painel administrativo</h1>
+      <p class="muted">Acesse com a conta autorizada para gerenciar presentes, confirmações e contribuições.</p>
+      <form id="login-form" class="stack">
+        <label>E-mail<input id="admin-email" type="email" required autocomplete="username" /></label>
+        <label>Senha<input id="admin-password" type="password" required autocomplete="current-password" /></label>
+        <button type="submit">Entrar</button>
+        <p id="login-feedback" class="feedback" role="status"></p>
+      </form>
+    </section>
+
+    <section class="dashboard" id="dashboard" hidden>
+      <header class="admin-header">
+        <div><p class="eyebrow">Paulo & Priscila</p><h1>Administração</h1></div>
+        <div class="header-actions"><span id="admin-user"></span><button id="logout-button" class="secondary">Sair</button></div>
+      </header>
+
+      <nav class="tabs" aria-label="Seções administrativas">
+        <button class="tab active" data-tab="gifts">Presentes</button>
+        <button class="tab" data-tab="rsvps">Confirmações</button>
+        <button class="tab" data-tab="contributions">Contribuições</button>
+      </nav>
+
+      <section class="tab-panel active" id="tab-gifts">
+        <div class="panel-heading"><div><h2>Lista de presentes</h2><p>Cadastre e edite os itens exibidos no site.</p></div></div>
+        <form id="gift-form" class="gift-form">
+          <input type="hidden" id="gift-id" />
+          <label>Nome<input id="gift-name" required maxlength="120" /></label>
+          <label>Valor (R$)<input id="gift-price" type="number" min="0.01" step="0.01" required /></label>
+          <label>Categoria<input id="gift-category" placeholder="Casa, Lua de mel..." /></label>
+          <label class="wide">Descrição<textarea id="gift-description" rows="3"></textarea></label>
+          <label class="checkbox"><input id="gift-active" type="checkbox" checked /> Exibir no site</label>
+          <div class="form-actions wide"><button type="submit">Salvar presente</button><button type="button" id="cancel-edit" class="secondary" hidden>Cancelar edição</button></div>
+        </form>
+        <div id="gifts-list" class="cards"></div>
+      </section>
+
+      <section class="tab-panel" id="tab-rsvps">
+        <div class="panel-heading"><div><h2>Confirmações de presença</h2><p>Veja quem confirmou presença pelo site.</p></div></div>
+        <div class="table-wrap"><table><thead><tr><th>Nome</th><th>Presença</th><th>Convidados</th><th>Data</th></tr></thead><tbody id="rsvps-body"></tbody></table></div>
+      </section>
+
+      <section class="tab-panel" id="tab-contributions">
+        <div class="panel-heading"><div><h2>Contribuições</h2><p>Registros de presentes e pagamentos em teste.</p></div></div>
+        <div class="table-wrap"><table><thead><tr><th>Convidado</th><th>Presente</th><th>Valor</th><th>Status</th><th>Data</th></tr></thead><tbody id="contributions-body"></tbody></table></div>
+      </section>
+    </section>
+  </main>
+
+  <script type="module" src="admin.js"></script>
+</body>
+</html>
