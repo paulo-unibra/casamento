@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Celebre o casamento de Marina e Rafael. Confirme sua presença, consulte os detalhes e conheça a lista de presentes."
+    />
+    <meta name="theme-color" content="#183c34" />
+    <title>Marina & Rafael — 12.12.2026</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Italiana&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header" id="inicio">
+      <a class="brand" href="#inicio" aria-label="Marina e Rafael, início">
+        <span>M</span><i>&</i><span>R</span>
+      </a>
+
+      <button class="menu-button" type="button" aria-expanded="false" aria-controls="main-navigation">
+        <span></span><span></span><span></span>
+        <span class="sr-only">Abrir menu</span>
+      </button>
+
+      <nav id="main-navigation" class="main-navigation" aria-label="Navegação principal">
+        <a href="#historia">Nossa história</a>
+        <a href="#celebracao">Celebração</a>
+        <a href="#presentes">Presentes</a>
+        <a href="#duvidas">Dúvidas</a>
+        <a class="nav-cta" href="#confirmar">Confirmar presença</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-photo" role="img" aria-label="Casal caminhando ao pôr do sol"></div>
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+          <p class="eyebrow light">Vamos nos casar</p>
+          <h1 id="hero-title">Marina <em>&</em> Rafael</h1>
+          <div class="hero-date">
+            <span>12</span>
+            <div><strong>DEZEMBRO</strong><small>2026</small></div>
+          </div>
+          <a class="button button-light" href="#confirmar">Confirme sua presença</a>
+        </div>
+        <a class="scroll-hint" href="#historia" aria-label="Ir para nossa história">Role para descobrir <b>↓</b></a>
+      </section>
+
+      <section class="countdown-section" aria-label="Contagem regressiva">
+        <p>Faltam apenas</p>
+        <div class="countdown" data-wedding-date="2026-12-12T16:30:00-03:00">
+          <div><strong data-unit="days">96</strong><span>dias</span></div>
+          <i></i>
+          <div><strong data-unit="hours">00</strong><span>horas</span></div>
+          <i></i>
+          <div><strong data-unit="minutes">00</strong><span>minutos</span></div>
+          <i></i>
+          <div><strong data-unit="seconds">00</strong><span>segundos</span></div>
+        </div>
+      </section>
+
+      <section class="story section" id="historia">
+        <div class="story-copy">
+          <p class="eyebrow">Um encontro que virou lar</p>
+          <h2>Nossa história</h2>
+          <p class="lead">Tudo começou com uma conversa despretensiosa, um café que durou horas e a sensação de que a vida acabava de mudar.</p>
+          <p>Entre viagens, domingos tranquilos e muitos planos compartilhados, descobrimos que o amor mora nos detalhes. Agora queremos celebrar esse novo capítulo ao lado de quem faz parte da nossa história.</p>
+          <blockquote>“Onde quer que você vá, eu irei.”</blockquote>
+          <span class="quote-source">Rute 1:16</span>
+        </div>
+        <div class="story-visual" aria-hidden="true">
+          <div class="arch-photo"></div>
+          <span class="year-stamp">Desde<br /><strong>2021</strong></span>
+        </div>
+      </section>
+
+      <section class="celebration section" id="celebracao">
+        <div class="section-heading centered">
+          <p class="eyebrow">Onde o nosso sim acontecerá</p>
+          <h2>A celebração</h2>
+          <p>Preparamos cada detalhe para viver este dia com vocês.</p>
+        </div>
+
+        <div class="event-grid">
+          <article class="event-card">
+            <span class="event-number">01</span>
+            <div class="line-icon" aria-hidden="true">♧</div>
+            <h3>Cerimônia</h3>
+            <p class="event-time">16h30</p>
+            <p>Igreja Nossa Senhora do Carmo<br />Recife — PE</p>
+            <a href="https://maps.google.com" target="_blank" rel="noreferrer">Ver no mapa <span>↗</span></a>
+          </article>
+          <article class="event-card featured">
+            <span class="event-number">02</span>
+            <div class="line-icon" aria-hidden="true">◇</div>
+            <h3>Recepção</h3>
+            <p class="event-time">18h30</p>
+            <p>Villa Jardim Eventos<br />Recife — PE</p>
+            <a href="https://maps.google.com" target="_blank" rel="noreferrer">Ver no mapa <span>↗</span></a>
+          </article>
+          <article class="event-card">
+            <span class="event-number">03</span>
+            <div class="line-icon" aria-hidden="true">✧</div>
+            <h3>Traje</h3>
+            <p class="event-time">Esporte fino</p>
+            <p>Queremos que você se sinta elegante, confortável e pronto para celebrar.</p>
+            <a href="#duvidas">Ver orientações <span>→</span></a>
+          </article>
+        </div>
+      </section>
+
+      <section class="rsvp" id="confirmar">
+        <div class="rsvp-copy">
+          <p class="eyebrow light">Sua presença é o nosso melhor presente</p>
+          <h2>Você celebra<br />com a gente?</h2>
+          <p>Confirme até 12 de novembro de 2026. Digite o nome como aparece no convite para localizar sua família.</p>
+        </div>
+        <form class="rsvp-form" id="rsvp-form">
+          <label for="guest-name">Nome do convidado</label>
+          <div class="input-row">
+            <input id="guest-name" name="guest-name" type="text" placeholder="Digite seu nome completo" required />
+            <button type="submit" aria-label="Buscar convite">→</button>
+          </div>
+          <p class="form-note">Esta é uma demonstração visual. O envio será conectado ao banco de dados na próxima etapa.</p>
+          <div class="form-feedback" role="status" aria-live="polite"></div>
+        </form>
+      </section>
+
+      <section class="gifts section" id="presentes">
+        <div class="section-heading gifts-heading">
+          <div>
+            <p class="eyebrow">Para o nosso novo capítulo</p>
+            <h2>Lista de presentes</h2>
+          </div>
+          <p>Selecionamos algumas ideias com carinho. Você poderá presentear, reservar um item ou contribuir via Pix.</p>
+        </div>
+
+        <div class="gift-grid">
+          <article class="gift-card">
+            <div class="gift-art gift-art-dinner"><span>✦</span></div>
+            <div class="gift-info"><span>Experiência</span><h3>Jantar especial na lua de mel</h3><p>R$ 250</p><button type="button">Escolher presente</button></div>
+          </article>
+          <article class="gift-card">
+            <div class="gift-art gift-art-home"><span>⌂</span></div>
+            <div class="gift-info"><span>Nossa casa</span><h3>Jogo de cama e banho</h3><p>R$ 320</p><button type="button">Escolher presente</button></div>
+          </article>
+          <article class="gift-card">
+            <div class="gift-art gift-art-trip"><span>⌁</span></div>
+            <div class="gift-info"><span>Lua de mel</span><h3>Passeio inesquecível para dois</h3><p>R$ 480</p><button type="button">Escolher presente</button></div>
+          </article>
+        </div>
+        <button class="button button-outline" type="button" id="view-all-gifts">Ver todos os presentes</button>
+      </section>
+
+      <section class="faq section" id="duvidas">
+        <div class="section-heading centered">
+          <p class="eyebrow">Antes do grande dia</p>
+          <h2>Dúvidas frequentes</h2>
+        </div>
+        <div class="accordion">
+          <details open><summary>Posso levar acompanhante?<span>+</span></summary><p>Os nomes incluídos no convite aparecerão na confirmação de presença. Caso tenha alguma dúvida, fale conosco.</p></details>
+          <details><summary>Haverá estacionamento no local?<span>+</span></summary><p>Sim. A recepção contará com estacionamento gratuito e serviço de manobrista para os convidados.</p></details>
+          <details><summary>Até quando posso confirmar presença?<span>+</span></summary><p>Pedimos que a confirmação seja enviada até 12 de novembro de 2026.</p></details>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="footer-monogram">M <i>&</i> R</div>
+      <p>12 de dezembro de 2026 · Recife, PE</p>
+      <span>Feito com amor para celebrar o nosso sim. Foto de <a href="https://unsplash.com/@jonathanborba" target="_blank" rel="noreferrer">Jonathan Borba</a>.</span>
+    </footer>
+
+    <div class="toast" role="status" aria-live="polite"></div>
+    <script src="script.js"></script>
+  </body>
+</html>
