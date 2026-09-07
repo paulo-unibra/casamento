@@ -34,7 +34,7 @@ a { color: inherit; }
 .hero { position: relative; min-height: 760px; height: 100svh; color: white; display: grid; place-items: center; isolation: isolate; }
 .hero-photo { position: absolute; inset: 0; z-index: -3; background-image: url("https://images.unsplash.com/photo-1556302482-70b6e670e6b7?auto=format&fit=crop&w=2200&q=88"); background-size: cover; background-position: center 48%; }
 .hero-overlay { position: absolute; inset: 0; z-index: -2; background: linear-gradient(90deg, rgba(79,15,45,.82), rgba(192,64,45,.3) 55%, rgba(231,131,35,.46)), linear-gradient(0deg, rgba(72,13,41,.66), transparent 46%); }
-.hero-orchids { position: absolute; z-index: -1; right: -5vw; bottom: -7vw; width: min(690px, 54vw); mix-blend-mode: screen; filter: saturate(1.16) contrast(1.06); opacity: .78; pointer-events: none; }
+.hero-orchids { position: absolute; z-index: -1; right: -2vw; bottom: -1vw; width: min(820px, 58vw); opacity: .93; pointer-events: none; filter: drop-shadow(0 18px 28px rgba(64, 13, 36, .16)); }
 .hero-content { text-align: center; padding: 110px 24px 70px; }
 .eyebrow { margin: 0 0 13px; color: var(--fuchsia); font-size: 12px; font-weight: 600; letter-spacing: .23em; text-transform: uppercase; }
 .eyebrow.light { color: #ffd45d; }
@@ -69,6 +69,7 @@ blockquote { margin: 32px 0 0; color: var(--forest-deep); font-family: var(--ser
 .quote-source { color: var(--fuchsia); font-size: 11px; letter-spacing: .18em; text-transform: uppercase; }
 .story-visual { position: relative; min-height: 600px; }
 .arch-photo { position: absolute; inset: 0 8% 0 0; border-radius: 240px 240px 4px 4px; background-image: linear-gradient(rgba(239,125,49,.11),rgba(201,21,110,.07)), url("https://images.unsplash.com/photo-1556302482-70b6e670e6b7?auto=format&fit=crop&w=1300&q=84"); background-size: cover; background-position: 70% center; }
+.story-orchids { position: absolute; z-index: 2; left: -13%; bottom: -9%; width: min(300px, 40%); filter: drop-shadow(0 16px 24px rgba(64,13,36,.13)); pointer-events: none; }
 .year-stamp { position: absolute; right: 0; bottom: 38px; width: 116px; height: 116px; border-radius: 50%; display: grid; place-content: center; text-align: center; color: var(--forest); background: var(--cream); border: 1px solid var(--gold); font-size: 10px; letter-spacing: .18em; text-transform: uppercase; }
 .year-stamp strong { display: block; margin-top: 3px; font-family: var(--serif); font-size: 25px; font-weight: 400; letter-spacing: .06em; }
 
@@ -161,7 +162,7 @@ footer > span { color: rgba(255,255,255,.48); font-size: 12px; }
   .hero { min-height: 680px; }
   .hero h1 { font-size: clamp(49px, 16vw, 70px); }
   .hero h1 em { display: block; height: .7em; }
-  .hero-orchids { right: -29vw; bottom: -2vw; width: 108vw; opacity: .57; }
+  .hero-orchids { right: -34vw; bottom: -1vw; width: 116vw; opacity: .68; }
   .scroll-hint { display: none; }
   .countdown-section { flex-direction: column; gap: 12px; padding: 35px 16px; }
   .countdown-section > p { margin: 0; }
@@ -171,6 +172,7 @@ footer > span { color: rgba(255,255,255,.48); font-size: 12px; }
   .section { padding: 75px 22px; }
   .story-visual { min-height: 410px; }
   .arch-photo { right: 4%; }
+  .story-orchids { left: -9%; bottom: -8%; width: 43%; }
   .rsvp-copy, .rsvp-form { padding-left: 24px; padding-right: 24px; }
   .gift-art { height: 190px; }
   .accordion summary { font-size: 18px; gap: 15px; }
