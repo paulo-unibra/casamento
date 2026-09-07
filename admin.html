@@ -14,7 +14,7 @@
     <section class="login-panel" id="login-panel">
       <p class="eyebrow">Paulo & Priscila</p>
       <h1>Painel administrativo</h1>
-      <p class="muted">Acesse com a conta autorizada para gerenciar presentes, confirmações e contribuições.</p>
+      <p class="muted">Acesse com a conta autorizada para gerenciar presentes, conteúdo do site, confirmações e contribuições.</p>
       <form id="login-form" class="stack">
         <label>E-mail<input id="admin-email" type="email" required autocomplete="username" /></label>
         <label>Senha<input id="admin-password" type="password" minlength="8" required autocomplete="current-password" /></label>
@@ -33,6 +33,7 @@
 
       <nav class="tabs" aria-label="Seções administrativas">
         <button class="tab active" data-tab="gifts">Presentes</button>
+        <button class="tab" data-tab="content">Conteúdo do site</button>
         <button class="tab" data-tab="rsvps">Confirmações</button>
         <button class="tab" data-tab="contributions">Contribuições</button>
       </nav>
@@ -60,6 +61,77 @@
           <div class="form-actions wide"><button type="submit" id="save-gift-button">Salvar presente</button><button type="button" id="cancel-edit" class="secondary" hidden>Cancelar edição</button></div>
         </form>
         <div id="gifts-list" class="cards"></div>
+      </section>
+
+      <section class="tab-panel" id="tab-content">
+        <div class="panel-heading">
+          <div>
+            <h2>Conteúdo do site</h2>
+            <p>Troque as fotos principais e edite os textos da seção “Nossa história”.</p>
+          </div>
+        </div>
+
+        <form id="site-content-form" class="site-content-form">
+          <div class="site-media-grid">
+            <section class="media-editor">
+              <div>
+                <h3>Foto principal</h3>
+                <p class="muted">Imagem exibida no topo do site.</p>
+              </div>
+              <div class="site-image-preview-wrap" id="hero-image-preview-wrap">
+                <img id="hero-image-preview" alt="Pré-visualização da foto principal" />
+              </div>
+              <label>
+                Trocar foto
+                <input id="hero-image" type="file" accept="image/jpeg,image/png,image/webp" />
+                <span class="field-note">JPG, PNG ou WebP · máximo 5 MB.</span>
+              </label>
+              <button type="button" id="remove-hero-image" class="secondary">Remover foto</button>
+            </section>
+
+            <section class="media-editor">
+              <div>
+                <h3>Foto de “Nossa história”</h3>
+                <p class="muted">Imagem em arco exibida ao lado do texto da história.</p>
+              </div>
+              <div class="site-image-preview-wrap" id="story-image-preview-wrap">
+                <img id="story-image-preview" alt="Pré-visualização da foto da história" />
+              </div>
+              <label>
+                Trocar foto
+                <input id="story-image" type="file" accept="image/jpeg,image/png,image/webp" />
+                <span class="field-note">JPG, PNG ou WebP · máximo 5 MB.</span>
+              </label>
+              <button type="button" id="remove-story-image" class="secondary">Remover foto</button>
+            </section>
+          </div>
+
+          <label>
+            Texto de destaque da história
+            <textarea id="story-lead" rows="3" maxlength="600" required></textarea>
+          </label>
+
+          <label>
+            Texto da história
+            <textarea id="story-text" rows="5" maxlength="2000" required></textarea>
+          </label>
+
+          <div class="site-text-grid">
+            <label>
+              Versículo / frase
+              <textarea id="verse-text" rows="3" maxlength="500" required></textarea>
+            </label>
+            <label>
+              Referência
+              <input id="verse-reference" maxlength="100" placeholder="Ex.: Rute 1:16" required />
+            </label>
+          </div>
+
+          <div class="content-save-row">
+            <button type="submit" id="save-site-content-button">Salvar conteúdo</button>
+            <p id="site-content-feedback" class="content-feedback" role="status" aria-live="polite"></p>
+          </div>
+        </form>
       </section>
 
       <section class="tab-panel" id="tab-rsvps">
