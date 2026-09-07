@@ -2,11 +2,56 @@ const menuButton = document.querySelector('.menu-button');
 const navigation = document.querySelector('.main-navigation');
 const toast = document.querySelector('.toast');
 
-const SUPABASE_URL = 'https://jygcabtudptfhpcfoyko.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_svnP0WG_s-FD5PuJb_cL5w_0r_7R6jv';
-let supabase;
+const API_BASE = 'https://jygcabtudptfhpcfoyko.supabase.co/functions/v1/app-api';
+const VISITOR_STORAGE_KEY = 'wedding_visitor_id';
 let allGifts = [];
 let showingAllGifts = false;
+
+function getVisitorId() {
+  let id = localStorage.getItem(VISITOR_STORAGE_KEY);
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem(VISITOR_STORAGE_KEY, id);
+  }
+  return id;
+}
+
+const visitorId = getVisitorId();
+
+async function apiFetch(path, options = {}) {
+  const headers = new Headers(options.headers || {});
+  headers.set('x-visitor-id', visitorId);
+  if (options.body && !headers.has('content-type')) headers.set('content-type', 'application/json');
+
+  const response = await fetch(`${API_BASE}${path}`, {
+    ...options,
+    headers,
+  });
+
+  let payload = null;
+  if (response.status !== 204) {
+    payload = await response.json().catch(() => null);
+  }
+
+  if (!response.ok) {
+    throw new Error(payload?.error || 'Não foi possível concluir a operação.');
+  }
+
+  return payload;
+}
+
+function auditPageVisit() {
+  fetch(`${API_BASE}/public/visit`, {
+    method: 'POST',
+    keepalive: true,
+    headers: { 'Content-Type': 'application/json', 'x-visitor-id': visitorId },
+    body: JSON.stringify({
+      visitor_id: visitorId,
+      path: `${location.pathname}${location.search}`,
+      title: document.title,
+    }),
+  }).catch(() => {});
+}
 
 menuButton.addEventListener('click', () => {
   const isOpen = navigation.classList.toggle('open');
@@ -54,21 +99,31 @@ function giftArt(category = '') {
   return ['gift-art-dinner', '✦'];
 }
 
+function escapeHtml(value = '') {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
 function renderGifts() {
   const grid = document.querySelector('.gift-grid');
   const gifts = showingAllGifts ? allGifts : allGifts.slice(0, 3);
 
   grid.innerHTML = gifts.map((gift) => {
     const [artClass, symbol] = giftArt(gift.category || '');
+    const safeName = escapeHtml(gift.name);
     const visual = gift.image_url
-      ? `<img src="${gift.image_url}" alt="${gift.name}" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit" />`
+      ? `<img src="${escapeHtml(gift.image_url)}" alt="${safeName}" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit" />`
       : `<span>${symbol}</span>`;
 
     return `<article class="gift-card">
       <div class="gift-art ${artClass}" ${gift.image_url ? 'style="padding:0;overflow:hidden;background:#f8f3eb"' : ''}>${visual}</div>
       <div class="gift-info">
-        <span>${gift.category || 'Presente'}</span>
-        <h3>${gift.name}</h3>
+        <span>${escapeHtml(gift.category || 'Presente')}</span>
+        <h3>${safeName}</h3>
         <p>${money(gift.price)}</p>
         <button type="button" data-gift-id="${gift.id}">Escolher presente</button>
       </div>
@@ -85,28 +140,12 @@ function renderGifts() {
 }
 
 async function loadGifts() {
-  const { data, error } = await supabase
-    .from('wedding_gifts')
-    .select('id,name,description,price,category,image_url,is_active')
-    .eq('is_active', true)
-    .order('price', { ascending: true });
-
-  if (error) throw error;
-  allGifts = data || [];
+  allGifts = await apiFetch('/public/gifts');
   renderGifts();
 }
 
 async function loadSiteSettings() {
-  const { data, error } = await supabase
-    .from('site_settings')
-    .select('hero_image_url,story_image_url,story_lead,story_text,verse_text,verse_reference')
-    .eq('id', 1)
-    .single();
-
-  if (error) {
-    console.warn('Não foi possível carregar o conteúdo editável:', error.message);
-    return;
-  }
+  const data = await apiFetch('/public/site-settings');
 
   const heroPhoto = document.querySelector('#hero-photo');
   const storyPhoto = document.querySelector('#story-photo');
@@ -133,21 +172,19 @@ async function chooseGift(giftId) {
   const contributorName = window.prompt(`Quem está presenteando “${gift.name}”?\nDigite seu nome completo:`);
   if (!contributorName?.trim()) return;
 
-  const { error } = await supabase.from('wedding_contributions').insert({
-    gift_id: gift.id,
-    contributor_name: contributorName.trim(),
-    amount: gift.price,
-    payment_method: 'test',
-    status: 'pending',
-  });
-
-  if (error) {
+  try {
+    await apiFetch('/public/contribution-test', {
+      method: 'POST',
+      body: JSON.stringify({
+        gift_id: gift.id,
+        contributor_name: contributorName.trim(),
+      }),
+    });
+    showToast('Presente registrado em modo de teste. Nenhum pagamento foi cobrado.');
+  } catch (error) {
     console.error(error);
-    showToast('Não foi possível registrar o presente agora.');
-    return;
+    showToast(error.message || 'Não foi possível registrar o presente agora.');
   }
-
-  showToast('Presente registrado em modo de teste. Nenhum pagamento foi cobrado.');
 }
 
 async function submitRsvp(event) {
@@ -158,31 +195,33 @@ async function submitRsvp(event) {
   const button = form.querySelector('button[type="submit"]');
   button.disabled = true;
 
-  const { error } = await supabase.from('wedding_rsvps').insert({
-    guest_name: name,
-    attending: true,
-    guests_count: 1,
-  });
-
-  button.disabled = false;
-  if (error) {
+  try {
+    await apiFetch('/public/rsvp', {
+      method: 'POST',
+      body: JSON.stringify({
+        guest_name: name,
+        attending: true,
+        guests_count: 1,
+        website: '',
+      }),
+    });
+    feedback.textContent = `Presença de ${name} confirmada com sucesso!`;
+    form.reset();
+  } catch (error) {
     console.error(error);
-    feedback.textContent = 'Não foi possível confirmar agora. Tente novamente.';
-    return;
+    feedback.textContent = error.message || 'Não foi possível confirmar agora. Tente novamente.';
+  } finally {
+    button.disabled = false;
   }
-
-  feedback.textContent = `Presença de ${name} confirmada com sucesso!`;
-  form.reset();
 }
 
-async function initSupabase() {
+async function init() {
+  auditPageVisit();
   try {
-    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
-    supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
     await Promise.all([loadGifts(), loadSiteSettings()]);
     document.querySelector('#rsvp-form').addEventListener('submit', submitRsvp);
   } catch (error) {
-    console.error('Supabase init error:', error);
+    console.error('API init error:', error);
     showToast('A conexão com o site está temporariamente indisponível.');
   }
 }
@@ -194,4 +233,4 @@ document.querySelector('#view-all-gifts').addEventListener('click', () => {
 
 updateCountdown();
 window.setInterval(updateCountdown, 1000);
-initSupabase();
+init();
