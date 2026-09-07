@@ -137,6 +137,29 @@ document.querySelector('#login-form').addEventListener('submit', async (event) =
   await ensureAdminSession();
 });
 
+document.querySelector('#signup-button').addEventListener('click', async () => {
+  const email = document.querySelector('#admin-email').value.trim();
+  const password = document.querySelector('#admin-password').value;
+  if (!email || password.length < 8) {
+    loginFeedback.textContent = 'Informe um e-mail válido e uma senha com pelo menos 8 caracteres.';
+    return;
+  }
+
+  loginFeedback.textContent = 'Criando acesso...';
+  const { data, error } = await supabase.auth.signUp({ email, password });
+  if (error) {
+    loginFeedback.textContent = error.message;
+    return;
+  }
+
+  if (data.session) {
+    loginFeedback.textContent = '';
+    await ensureAdminSession();
+  } else {
+    loginFeedback.textContent = 'Conta criada. Confira seu e-mail para confirmar o acesso e depois entre no painel.';
+  }
+});
+
 document.querySelector('#logout-button').addEventListener('click', async () => {
   await supabase.auth.signOut();
   window.location.reload();
