@@ -3,7 +3,6 @@ const navigation = document.querySelector('.main-navigation');
 const toast = document.querySelector('.toast');
 
 const API_BASE = 'https://jygcabtudptfhpcfoyko.supabase.co/functions/v1/app-api';
-const ASAAS_PAYMENT_API = 'https://jygcabtudptfhpcfoyko.supabase.co/functions/v1/create-asaas-payment';
 const VISITOR_STORAGE_KEY = 'wedding_visitor_id';
 let allGifts = [];
 let showingAllGifts = false;
@@ -41,23 +40,6 @@ async function apiFetch(path, options = {}) {
   return payload;
 }
 
-async function paymentFetch(options = {}) {
-  const headers = new Headers(options.headers || {});
-  headers.set('x-visitor-id', visitorId);
-  headers.set('content-type', 'application/json');
-
-  const response = await fetch(ASAAS_PAYMENT_API, { ...options, headers });
-  const payload = await response.json().catch(() => null);
-
-  if (!response.ok) {
-    const error = new Error(payload?.error || 'Não foi possível abrir o pagamento.');
-    error.code = payload?.code;
-    throw error;
-  }
-
-  return payload;
-}
-
 function auditPageVisit() {
   fetch(`${API_BASE}/public/visit`, {
     method: 'POST',
@@ -74,13 +56,30 @@ function auditPageVisit() {
 menuButton.addEventListener('click', () => {
   const isOpen = navigation.classList.toggle('open');
   menuButton.setAttribute('aria-expanded', String(isOpen));
+  menuButton.querySelector('.sr-only').textContent = isOpen ? 'Fechar menu' : 'Abrir menu';
 });
 
 navigation.querySelectorAll('a').forEach((link) => {
   link.addEventListener('click', () => {
     navigation.classList.remove('open');
     menuButton.setAttribute('aria-expanded', 'false');
+    menuButton.querySelector('.sr-only').textContent = 'Abrir menu';
   });
+});
+
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape' || !navigation.classList.contains('open')) return;
+  navigation.classList.remove('open');
+  menuButton.setAttribute('aria-expanded', 'false');
+  menuButton.querySelector('.sr-only').textContent = 'Abrir menu';
+  menuButton.focus();
+});
+
+document.addEventListener('click', (event) => {
+  if (!navigation.classList.contains('open') || event.target.closest('.site-header')) return;
+  navigation.classList.remove('open');
+  menuButton.setAttribute('aria-expanded', 'false');
+  menuButton.querySelector('.sr-only').textContent = 'Abrir menu';
 });
 
 function updateCountdown() {
@@ -112,9 +111,13 @@ function money(value) {
 
 function giftArt(category = '') {
   const value = category.toLowerCase();
-  if (value.includes('casa')) return ['gift-art-home', '⌂'];
-  if (value.includes('lua')) return ['gift-art-trip', '⌁'];
-  return ['gift-art-dinner', '✦'];
+  if (value.includes('casa')) {
+    return ['gift-art-home', '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 10.5 12 3l8.5 7.5M5.5 9v11h13V9M9.5 20v-6h5v6"/></svg>'];
+  }
+  if (value.includes('lua')) {
+    return ['gift-art-trip', '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7V5.5A2.5 2.5 0 0 1 9.5 3h5A2.5 2.5 0 0 1 17 5.5V7M4 8.5h16v11H4zM4 13h16M9 11v4M15 11v4"/></svg>'];
+  }
+  return ['gift-art-dinner', '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h16v11H4zM3 9h18M12 9v11M12 9H8.5a2.5 2.5 0 1 1 2.2-3.7L12 9Zm0 0h3.5a2.5 2.5 0 1 0-2.2-3.7L12 9Z"/></svg>'];
 }
 
 function escapeHtml(value = '') {
@@ -128,14 +131,18 @@ function escapeHtml(value = '') {
 
 function renderGifts() {
   const grid = document.querySelector('.gift-grid');
+  const status = document.querySelector('.gift-status');
   const gifts = showingAllGifts ? allGifts : allGifts.slice(0, 3);
 
+  grid.setAttribute('aria-busy', 'false');
+  status.textContent = '';
+
   grid.innerHTML = gifts.map((gift) => {
-    const [artClass, symbol] = giftArt(gift.category || '');
+    const [artClass, icon] = giftArt(gift.category || '');
     const safeName = escapeHtml(gift.name);
     const visual = gift.image_url
       ? `<img src="${escapeHtml(gift.image_url)}" alt="${safeName}" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit" />`
-      : `<span>${symbol}</span>`;
+      : `<span>${icon}</span>`;
 
     return `<article class="gift-card">
       <div class="gift-art ${artClass}" ${gift.image_url ? 'style="padding:0;overflow:hidden;background:#f8f3eb"' : ''}>${visual}</div>
@@ -148,18 +155,37 @@ function renderGifts() {
     </article>`;
   }).join('');
 
-  grid.querySelectorAll('[data-gift-id]').forEach((button) => {
-    button.addEventListener('click', () => chooseGift(Number(button.dataset.giftId), button));
-  });
-
   const viewAll = document.querySelector('#view-all-gifts');
   viewAll.hidden = allGifts.length <= 3;
   viewAll.textContent = showingAllGifts ? 'Mostrar menos' : 'Ver todos os presentes';
 }
 
 async function loadGifts() {
-  allGifts = await apiFetch('/public/gifts');
-  renderGifts();
+  const grid = document.querySelector('.gift-grid');
+  const status = document.querySelector('.gift-status');
+  const viewAll = document.querySelector('#view-all-gifts');
+  viewAll.hidden = true;
+
+  try {
+    allGifts = await apiFetch('/public/gifts');
+    if (!allGifts.length) {
+      grid.setAttribute('aria-busy', 'false');
+      grid.innerHTML = '';
+      status.innerHTML = '<div class="gift-state"><strong>A lista está sendo preparada.</strong><span>Em breve, os presentes escolhidos por Paulo e Priscila aparecerão aqui.</span></div>';
+      return;
+    }
+    renderGifts();
+  } catch (error) {
+    console.error('Gift list error:', error);
+    grid.setAttribute('aria-busy', 'false');
+    grid.innerHTML = '';
+    status.innerHTML = '<div class="gift-state gift-state--error"><strong>Não foi possível carregar os presentes.</strong><span>Verifique sua conexão e tente novamente.</span><button type="button" data-retry-gifts>Tentar novamente</button></div>';
+    status.querySelector('[data-retry-gifts]').addEventListener('click', () => {
+      status.textContent = 'Carregando a lista de presentes…';
+      grid.setAttribute('aria-busy', 'true');
+      loadGifts();
+    }, { once: true });
+  }
 }
 
 async function loadSiteSettings() {
@@ -172,10 +198,10 @@ async function loadSiteSettings() {
   const storyVerse = document.querySelector('#story-verse');
   const storyVerseReference = document.querySelector('#story-verse-reference');
 
-  heroPhoto.style.backgroundImage = data.hero_image_url ? `url("${data.hero_image_url}")` : 'none';
-  storyPhoto.style.backgroundImage = data.story_image_url
-    ? `linear-gradient(rgba(193,59,130,.025),rgba(79,96,72,.08)), url("${data.story_image_url}")`
-    : 'none';
+  if (data.hero_image_url) heroPhoto.style.backgroundImage = `url("${data.hero_image_url}")`;
+  if (data.story_image_url) {
+    storyPhoto.style.backgroundImage = `linear-gradient(rgba(193,59,130,.025),rgba(79,96,72,.08)), url("${data.story_image_url}")`;
+  }
 
   if (data.story_lead) storyLead.textContent = data.story_lead;
   if (data.story_text) storyText.textContent = data.story_text;
@@ -183,47 +209,16 @@ async function loadSiteSettings() {
   if (data.verse_reference) storyVerseReference.textContent = data.verse_reference;
 }
 
-async function chooseGift(giftId, button) {
-  const gift = allGifts.find((item) => item.id === giftId);
-  if (!gift) return;
-
-  const contributorName = window.prompt(`Quem está presenteando “${gift.name}”?\nDigite seu nome completo:`);
-  if (!contributorName?.trim()) return;
-
-  const originalText = button.textContent;
-  button.disabled = true;
-  button.textContent = 'Abrindo pagamento...';
-
-  try {
-    const result = await paymentFetch({
-      method: 'POST',
-      body: JSON.stringify({
-        gift_id: gift.id,
-        contributor_name: contributorName.trim(),
-      }),
-    });
-
-    if (!result?.checkout_url) throw new Error('O pagamento foi criado sem uma URL de checkout.');
-    window.location.assign(result.checkout_url);
-  } catch (error) {
-    console.error(error);
-    if (error.code === 'ASAAS_NOT_CONFIGURED') {
-      showToast('Os pagamentos estão sendo ativados. Tente novamente após a configuração do Asaas.');
-    } else {
-      showToast(error.message || 'Não foi possível abrir o pagamento agora.');
-    }
-    button.disabled = false;
-    button.textContent = originalText;
-  }
-}
-
 async function submitRsvp(event) {
   event.preventDefault();
   const form = event.currentTarget;
-  const name = new FormData(form).get('guest-name').trim();
+  const name = String(new FormData(form).get('guest-name') || '').trim();
   const feedback = form.querySelector('.form-feedback');
   const button = form.querySelector('button[type="submit"]');
   button.disabled = true;
+  button.setAttribute('aria-busy', 'true');
+  feedback.className = 'form-feedback is-loading';
+  feedback.textContent = 'Confirmando sua presença…';
 
   try {
     await apiFetch('/public/rsvp', {
@@ -235,13 +230,16 @@ async function submitRsvp(event) {
         website: '',
       }),
     });
+    feedback.className = 'form-feedback is-success';
     feedback.textContent = `Presença de ${name} confirmada com sucesso!`;
     form.reset();
   } catch (error) {
     console.error(error);
+    feedback.className = 'form-feedback is-error';
     feedback.textContent = error.message || 'Não foi possível confirmar agora. Tente novamente.';
   } finally {
     button.disabled = false;
+    button.removeAttribute('aria-busy');
   }
 }
 
@@ -258,14 +256,13 @@ function showPaymentReturnMessage() {
 
 async function init() {
   auditPageVisit();
-  try {
-    await Promise.all([loadGifts(), loadSiteSettings()]);
-    document.querySelector('#rsvp-form').addEventListener('submit', submitRsvp);
-    showPaymentReturnMessage();
-  } catch (error) {
-    console.error('API init error:', error);
-    showToast('A conexão com o site está temporariamente indisponível.');
-  }
+  document.querySelector('#rsvp-form').addEventListener('submit', submitRsvp);
+  showPaymentReturnMessage();
+
+  loadGifts();
+  loadSiteSettings().catch((error) => {
+    console.error('Site settings error:', error);
+  });
 }
 
 document.querySelector('#view-all-gifts').addEventListener('click', () => {

@@ -8,17 +8,19 @@
   modal.hidden = true;
   modal.innerHTML = `
     <div class="payment-modal__backdrop" data-payment-close></div>
-    <section class="payment-modal__panel" role="dialog" aria-modal="true" aria-labelledby="payment-modal-title">
+    <section class="payment-modal__panel" role="dialog" aria-modal="true" aria-labelledby="payment-modal-title" aria-describedby="payment-modal-description">
       <button class="payment-modal__close" type="button" aria-label="Fechar" data-payment-close>×</button>
 
       <div class="payment-modal__heading">
         <span class="payment-modal__eyebrow">Um carinho para o nosso novo lar</span>
         <h2 id="payment-modal-title">Presentear Paulo & Priscila</h2>
-        <p>Revise o presente e informe seu nome. Na próxima etapa, o pagamento será concluído no ambiente seguro do Asaas.</p>
+        <p id="payment-modal-description">Revise o presente e informe seu nome. Na próxima etapa, o pagamento será concluído no ambiente seguro do Asaas.</p>
       </div>
 
       <div class="payment-modal__gift">
-        <div class="payment-modal__gift-icon" aria-hidden="true">✦</div>
+        <div class="payment-modal__gift-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M4 9h16v11H4zM3 9h18M12 9v11M12 9H8.5a2.5 2.5 0 1 1 2.2-3.7L12 9Zm0 0h3.5a2.5 2.5 0 1 0-2.2-3.7L12 9Z"/></svg>
+        </div>
         <div class="payment-modal__gift-copy">
           <span>Presente escolhido</span>
           <strong id="payment-gift-name">—</strong>
@@ -41,13 +43,13 @@
         />
 
         <div class="payment-modal__methods" aria-label="Formas de pagamento disponíveis">
-          <span><b>◆</b> Pix</span>
-          <span><b>▣</b> Cartão</span>
-          <span><b>▤</b> Boleto</span>
+          <span>Pix</span>
+          <span>Cartão</span>
+          <span>Boleto</span>
         </div>
 
         <p class="payment-modal__security">
-          <span aria-hidden="true">⌁</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10V7a5 5 0 0 1 10 0v3M5 10h14v10H5zM12 14v2"/></svg>
           Seus dados de pagamento não passam por este site. O checkout é processado diretamente pelo Asaas.
         </p>
 
@@ -71,6 +73,7 @@
   const submitButton = modal.querySelector('#payment-submit');
 
   let previousFocus = null;
+  const focusableSelector = 'button:not(:disabled), input:not(:disabled), [href], [tabindex]:not([tabindex="-1"])';
 
   function getVisitorId() {
     let id = localStorage.getItem(VISITOR_STORAGE_KEY);
@@ -154,6 +157,18 @@
 
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && !modal.hidden) closeModal();
+    if (event.key !== 'Tab' || modal.hidden) return;
+
+    const focusable = [...modal.querySelectorAll(focusableSelector)];
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
   });
 
   form.addEventListener('submit', async (event) => {

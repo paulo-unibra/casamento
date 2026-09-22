@@ -70,6 +70,11 @@ body.payment-modal-open {
   line-height: 1;
 }
 
+.payment-modal__close:hover { color: white; background: var(--orchid); }
+.payment-modal__close:focus-visible,
+.payment-modal__submit:focus-visible,
+.payment-modal__form input[type="text"]:focus-visible { outline: 3px solid rgba(193,59,130,.34); outline-offset: 3px; }
+
 .payment-modal__heading {
   padding-right: 46px;
 }
@@ -122,6 +127,16 @@ body.payment-modal-open {
   color: white;
   background: var(--orchid);
   box-shadow: 0 8px 20px rgba(193,59,130,.18);
+}
+
+.payment-modal__gift-icon svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.4;
 }
 
 .payment-modal__gift-copy {
@@ -210,11 +225,6 @@ body.payment-modal-open {
   font-weight: 600;
 }
 
-.payment-modal__methods b {
-  color: var(--orchid);
-  font-size: 11px;
-}
-
 .payment-modal__security {
   margin: 4px 0 0;
   padding: 12px 14px;
@@ -228,10 +238,16 @@ body.payment-modal-open {
   line-height: 1.55;
 }
 
-.payment-modal__security > span {
+.payment-modal__security > svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
   color: var(--sage-deep);
-  font-size: 17px;
-  line-height: 1.1;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.5;
 }
 
 .payment-modal__feedback {
