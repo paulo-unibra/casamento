@@ -98,7 +98,7 @@ h2 { margin: 0; font-family: var(--display); font-size: clamp(60px, 7vw, 96px); 
 .section-heading > p { max-width: 48ch; margin: 0 0 4px; color: var(--muted); }
 
 .story { padding-right: 0; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(420px, .85fr); align-items: stretch; background: var(--paper-light); }
-.story-visual { position: relative; min-height: 680px; }
+.story-visual { position: relative; min-height: 0; align-self: center; aspect-ratio: 4 / 3; }
 .story-photo { position: absolute; inset: 0; background: linear-gradient(rgba(39,48,36,.04),rgba(39,48,36,.08)), url("assets/paulo-priscila-historia.webp") center / cover no-repeat; }
 .story-year { position: absolute; right: 0; bottom: 0; padding: 18px 25px; color: white; background: var(--fuchsia); font-size: 11px; font-weight: 600; letter-spacing: .08em; }
 .story-copy { padding: clamp(76px, 9vw, 138px) clamp(40px, 7vw, 110px); display: flex; flex-direction: column; justify-content: center; }
