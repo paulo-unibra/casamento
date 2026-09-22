@@ -47,7 +47,7 @@ Rules use `rgba(39, 48, 36, .22)`. Corners remain square unless a native control
 
 - The main image is `assets/paulo-priscila-hero.webp` and must never be replaced by remote settings.
 - Use `cover` with a centered mobile crop so both faces remain visible.
-- The story image may be updated by site settings; its local fallback must remain a photograph of the couple.
+- The story image may be updated by site settings; its local fallback is `assets/paulo-priscila-historia.webp` and must remain a photograph of the couple.
 - Use `assets/orquideas-hero.webp` only as the restrained hero signature.
 - Do not introduce stock romantic photography, decorative arches, or repeated floral frames.
 

@@ -197,7 +197,7 @@ async function loadSiteSettings() {
   const storyVerse = document.querySelector('#story-verse');
   const storyVerseReference = document.querySelector('#story-verse-reference');
 
-  if (data.story_image_url) {
+  if (data.story_image_url && !storyPhoto.hasAttribute('data-static-image')) {
     storyPhoto.style.backgroundImage = `linear-gradient(rgba(39,48,36,.04),rgba(39,48,36,.08)), url("${data.story_image_url}")`;
   }
 

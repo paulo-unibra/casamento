@@ -74,12 +74,12 @@ img { max-width: 100%; }
 .hero-details > div + div { padding-left: 24px; border-left: 1px solid var(--line); }
 .hero-details strong { font-family: var(--display); font-size: 50px; font-weight: 400; line-height: 1; font-variant-numeric: lining-nums tabular-nums; }
 .hero-details span { font-size: 11px; font-weight: 600; letter-spacing: .09em; line-height: 1.5; }
-.button { min-height: 51px; padding: 0 22px; display: inline-flex; align-items: center; justify-content: center; gap: 36px; border: 1px solid transparent; border-radius: 0; background: transparent; cursor: pointer; font-size: 12px; font-weight: 600; letter-spacing: .06em; text-decoration: none; transition: color .25s ease, background .25s ease, border-color .25s ease; }
+.button { min-height: 51px; padding: 0 22px; display: inline-flex; align-items: center; justify-content: center; gap: 36px; border: 1px solid transparent; border-radius: 0; background: transparent; cursor: pointer; font-size: 12px; font-weight: 600; letter-spacing: .045em; text-decoration: none; transition: color .25s ease, background .25s ease, border-color .25s ease; }
 .button-primary { color: white; background: var(--fuchsia); }
 .button-primary:hover { background: var(--fuchsia-dark); }
 .button-outline { border-color: var(--ink); color: var(--ink); }
 .button-outline:hover { color: white; background: var(--ink); }
-.hero-orchids { position: absolute; z-index: -1; left: -115px; bottom: -85px; width: min(330px, 27vw); opacity: .9; pointer-events: none; }
+.hero-orchids { position: absolute; z-index: -1; right: -76px; bottom: -48px; width: min(290px, 23vw); opacity: .78; transform: rotate(-3deg); transform-origin: 70% 100%; pointer-events: none; }
 .hero-visual { position: relative; min-height: 720px; overflow: hidden; background: #c9c6b9; }
 .hero-photo { position: absolute; inset: 0; background: url("assets/paulo-priscila-hero.webp") 52% 46% / cover no-repeat; animation: photo-reveal 1.15s cubic-bezier(.16,1,.3,1) both; }
 .hero-caption { position: absolute; right: 28px; bottom: 22px; margin: 0; padding: 9px 12px; color: white; background: rgba(39,48,36,.86); font-size: 11px; font-weight: 600; letter-spacing: .1em; }
@@ -90,7 +90,7 @@ img { max-width: 100%; }
 .countdown { display: grid; grid-template-columns: repeat(4, 1fr); }
 .countdown div { padding: 10px 20px; border-left: 1px solid var(--line); text-align: center; }
 .countdown strong { display: block; color: var(--fuchsia-dark); font-family: var(--display); font-size: clamp(34px, 3.6vw, 52px); font-weight: 400; line-height: 1; font-variant-numeric: lining-nums tabular-nums; }
-.countdown span { display: block; margin-top: 6px; font-size: 11px; font-weight: 600; letter-spacing: .06em; }
+.countdown span { display: block; margin-top: 6px; font-size: 11px; font-weight: 600; letter-spacing: .045em; }
 
 .section { padding: clamp(96px, 10vw, 150px) clamp(24px, 7vw, 108px); scroll-margin-top: 28px; }
 h2 { margin: 0; font-family: var(--display); font-size: clamp(60px, 7vw, 96px); font-weight: 400; line-height: .9; letter-spacing: -.04em; }
@@ -98,8 +98,8 @@ h2 { margin: 0; font-family: var(--display); font-size: clamp(60px, 7vw, 96px); 
 .section-heading > p { max-width: 48ch; margin: 0 0 4px; color: var(--muted); }
 
 .story { padding-right: 0; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(420px, .85fr); align-items: stretch; background: var(--paper-light); }
-.story-visual { position: relative; min-height: 720px; }
-.story-photo { position: absolute; inset: 0; background: linear-gradient(rgba(39,48,36,.04),rgba(39,48,36,.08)), url("assets/paulo-priscila-hero.webp") 35% center / cover no-repeat; }
+.story-visual { position: relative; min-height: 680px; }
+.story-photo { position: absolute; inset: 0; background: linear-gradient(rgba(39,48,36,.04),rgba(39,48,36,.08)), url("assets/paulo-priscila-historia.webp") center / cover no-repeat; }
 .story-year { position: absolute; right: 0; bottom: 0; padding: 18px 25px; color: white; background: var(--fuchsia); font-size: 11px; font-weight: 600; letter-spacing: .08em; }
 .story-copy { padding: clamp(76px, 9vw, 138px) clamp(40px, 7vw, 110px); display: flex; flex-direction: column; justify-content: center; }
 .story-copy .lead { max-width: 30ch; margin: 44px 0 22px; font-family: var(--display); font-size: 25px; line-height: 1.45; }
@@ -122,7 +122,7 @@ blockquote { margin: 50px 0 7px; padding-top: 25px; border-top: 1px solid var(--
 .rsvp-copy h2 { color: white; }
 .rsvp-copy p { max-width: 40ch; margin: 30px 0 0; color: #d8dfd4; }
 .rsvp-form { max-width: 690px; }
-.rsvp-form label { display: block; margin-bottom: 18px; color: #d8dfd4; font-size: 12px; font-weight: 600; letter-spacing: .06em; }
+.rsvp-form label { display: block; margin-bottom: 18px; color: #d8dfd4; font-size: 12px; font-weight: 600; letter-spacing: .045em; }
 .input-row { display: grid; grid-template-columns: 1fr auto; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,.48); }
 .input-row input { min-width: 0; height: 66px; padding: 0 4px; border: 0; outline: 0; color: white; background: transparent; font-family: var(--display); font-size: clamp(24px, 2.5vw, 34px); }
 .input-row input::placeholder { color: #acb6a9; opacity: 1; }
@@ -217,7 +217,7 @@ footer a { justify-self: end; font-size: 12px; font-weight: 600; letter-spacing:
   .hero h1 { font-size: clamp(64px, 18vw, 88px); }
   .hero-blessing { margin-top: 30px; }
   .hero-details { margin-top: 30px; }
-  .hero-orchids { left: auto; right: -80px; bottom: -85px; width: 260px; opacity: .72; }
+  .hero-orchids { left: auto; right: -80px; bottom: -85px; width: 260px; opacity: .72; transform: none; }
   .hero-visual { min-height: 66svh; }
   .hero-photo { background-position: 50% center; }
   .countdown-section { padding: 32px 24px; grid-template-columns: 1fr; gap: 24px; }
@@ -227,7 +227,7 @@ footer a { justify-self: end; font-size: 12px; font-weight: 600; letter-spacing:
   .section-heading { margin-bottom: 52px; grid-template-columns: 1fr; gap: 26px; }
   h2 { font-size: clamp(56px, 15vw, 76px); }
   .story { padding: 0; grid-template-columns: 1fr; }
-  .story-visual { min-height: 62svh; }
+  .story-visual { min-height: 0; aspect-ratio: 4 / 3; }
   .story-copy { padding: 90px 24px; }
   .story-copy .lead { margin-top: 36px; }
   .event-card { padding: 28px 0; grid-template-columns: 80px 1fr; gap: 20px; }
@@ -252,8 +252,8 @@ footer a { justify-self: end; font-size: 12px; font-weight: 600; letter-spacing:
   .countdown div { padding: 8px 6px; }
   .countdown strong { font-size: 32px; }
   .countdown span { font-size: 11px; }
-  .story-visual { min-height: 520px; }
-  .story-photo { background-position: 68% center; }
+  .story-visual { min-height: 0; }
+  .story-photo { background-position: center; }
   .event-card { grid-template-columns: 62px 1fr; }
   .event-time { font-size: 21px; }
   .input-row { grid-template-columns: 1fr; }

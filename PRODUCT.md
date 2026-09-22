@@ -25,7 +25,7 @@ O site público é acessado por link e publicado no GitHub Pages. Convidados nã
 ## Capabilities and Constraints
 
 - Conteúdo público em português do Brasil.
-- Data do casamento: 19 de dezembro de 2026, às 14h.
+- Data do casamento: 9 de janeiro de 2027, às 14h.
 - Cerimônia: IEADPE Pau Amarelo Forte, Av. Cláudio José Gueiros Leite, 5481, Pau Amarelo, Paulista/PE.
 - Recepção: Cláudio Bial Recepções, Av. Beira Mar, 6209, Pau Amarelo, Paulista/PE.
 - RSVP público sem login.
