@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "direction": "editorial-gallery-programme",
+  "fonts": {
+    "display": "Bodoni Moda",
+    "sans": "Manrope"
+  },
+  "colors": {
+    "paper": "#f1f2ee",
+    "paperLight": "#fafbf8",
+    "ink": "#273024",
+    "olive": "#344333",
+    "oliveSoft": "#dfe2d6",
+    "fuchsia": "#b72b6d",
+    "fuchsiaDark": "#8f1f53",
+    "muted": "#50554e"
+  },
+  "shape": "square-editorial",
+  "responsiveBreakpoint": 820,
+  "heroAsset": "assets/paulo-priscila-hero.webp",
+  "principles": [
+    "information-first",
+    "real-photography",
+    "asymmetric-grid",
+    "restrained-botanical-accent",
+    "no-template-cards"
+  ]
+}

@@ -1,0 +1,5 @@
+High-fidelity desktop redesign comp for the existing Paulo & Priscila wedding website.
+
+Direction: editorial gallery programme — intimate, contemporary, composed like a cultural event publication rather than a generic wedding template. Split hero with expressive typography on the left and one large rectangular couple photograph on the right. Quiet neutral ground, deep botanical green, disciplined fuchsia accent, fine rules, asymmetrical grids, generous negative space, and a single restrained orchid signature. Prioritize ceremony information and RSVP. Avoid arches, floating cards, excessive rounded corners, glass effects, gradients, pill labels, repeated decorative flowers, cursive display fonts, and generic AI landing-page patterns.
+
+Preserve the couple name Paulo & Priscila, wedding date 19 December 2026 at 14:00, event information, RSVP, story, gifts, and FAQ. Mobile-first behavior should retain the hierarchy and keep the couple visible in the hero crop.

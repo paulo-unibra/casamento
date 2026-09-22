@@ -74,6 +74,15 @@
 
   let previousFocus = null;
   const focusableSelector = 'button:not(:disabled), input:not(:disabled), [href], [tabindex]:not([tabindex="-1"])';
+  const backgroundElements = [...document.querySelectorAll('body > header, body > main, body > footer')];
+
+  function setBackgroundHidden(isHidden) {
+    backgroundElements.forEach((element) => {
+      element.inert = isHidden;
+      if (isHidden) element.setAttribute('aria-hidden', 'true');
+      else element.removeAttribute('aria-hidden');
+    });
+  }
 
   function getVisitorId() {
     let id = localStorage.getItem(VISITOR_STORAGE_KEY);
@@ -99,6 +108,7 @@
     submitButton.querySelector('span').textContent = 'Ir para pagamento seguro';
 
     modal.hidden = false;
+    setBackgroundHidden(true);
     document.body.classList.add('payment-modal-open');
     requestAnimationFrame(() => {
       modal.classList.add('is-visible');
@@ -112,6 +122,7 @@
     document.body.classList.remove('payment-modal-open');
     window.setTimeout(() => {
       modal.hidden = true;
+      setBackgroundHidden(false);
       previousFocus?.focus?.();
     }, 180);
   }

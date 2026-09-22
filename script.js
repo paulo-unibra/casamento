@@ -191,16 +191,14 @@ async function loadGifts() {
 async function loadSiteSettings() {
   const data = await apiFetch('/public/site-settings');
 
-  const heroPhoto = document.querySelector('#hero-photo');
   const storyPhoto = document.querySelector('#story-photo');
   const storyLead = document.querySelector('#story-lead');
   const storyText = document.querySelector('#story-text');
   const storyVerse = document.querySelector('#story-verse');
   const storyVerseReference = document.querySelector('#story-verse-reference');
 
-  if (data.hero_image_url) heroPhoto.style.backgroundImage = `url("${data.hero_image_url}")`;
   if (data.story_image_url) {
-    storyPhoto.style.backgroundImage = `linear-gradient(rgba(193,59,130,.025),rgba(79,96,72,.08)), url("${data.story_image_url}")`;
+    storyPhoto.style.backgroundImage = `linear-gradient(rgba(39,48,36,.04),rgba(39,48,36,.08)), url("${data.story_image_url}")`;
   }
 
   if (data.story_lead) storyLead.textContent = data.story_lead;
@@ -215,6 +213,14 @@ async function submitRsvp(event) {
   const name = String(new FormData(form).get('guest-name') || '').trim();
   const feedback = form.querySelector('.form-feedback');
   const button = form.querySelector('button[type="submit"]');
+
+  if (name.length < 2) {
+    feedback.className = 'form-feedback is-error';
+    feedback.textContent = 'Informe seu nome completo para confirmar.';
+    form.querySelector('#guest-name').focus();
+    return;
+  }
+
   button.disabled = true;
   button.setAttribute('aria-busy', 'true');
   feedback.className = 'form-feedback is-loading';
